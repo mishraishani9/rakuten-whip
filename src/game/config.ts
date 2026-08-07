@@ -177,7 +177,7 @@ export const DIFFICULTIES: Difficulty[] = ["Easy", "Medium", "Hard"];
 
 export function squareAt(position: number): BoardPosition {
   const normalized = ((position % GAME_SETTINGS.BOARD_SIZE) + GAME_SETTINGS.BOARD_SIZE) % GAME_SETTINGS.BOARD_SIZE;
-  return BOARD_POSITIONS[normalized];
+  return BOARD_POSITIONS[normalized]!;
 }
 
 export function squareLabel(square: BoardPosition): string {
