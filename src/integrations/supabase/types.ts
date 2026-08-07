@@ -14,7 +14,275 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      game_events: {
+        Row: {
+          created_at: string
+          dice_value: number | null
+          difficulty: string | null
+          event_type: string
+          game_id: string
+          id: string
+          is_correct: boolean | null
+          player_id: string | null
+          position: number | null
+          question_id: string | null
+          theme: string | null
+        }
+        Insert: {
+          created_at?: string
+          dice_value?: number | null
+          difficulty?: string | null
+          event_type: string
+          game_id: string
+          id?: string
+          is_correct?: boolean | null
+          player_id?: string | null
+          position?: number | null
+          question_id?: string | null
+          theme?: string | null
+        }
+        Update: {
+          created_at?: string
+          dice_value?: number | null
+          difficulty?: string | null
+          event_type?: string
+          game_id?: string
+          id?: string
+          is_correct?: boolean | null
+          player_id?: string | null
+          position?: number | null
+          question_id?: string | null
+          theme?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_events_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      games: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          game_name: string
+          id: string
+          number_of_players: number
+          started_at: string | null
+          status: string
+          total_questions_used: number
+          winner_player_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          game_name: string
+          id?: string
+          number_of_players?: number
+          started_at?: string | null
+          status?: string
+          total_questions_used?: number
+          winner_player_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          game_name?: string
+          id?: string
+          number_of_players?: number
+          started_at?: string | null
+          status?: string
+          total_questions_used?: number
+          winner_player_id?: string | null
+        }
+        Relationships: []
+      }
+      players: {
+        Row: {
+          bar_count: number
+          bonus_count: number
+          club_count: number
+          completed_circuit: boolean
+          correct_answers: number
+          created_at: string
+          final_position: number
+          final_rank: number | null
+          game_id: string
+          id: string
+          incorrect_answers: number
+          jail_count: number
+          pawn_color: string
+          player_name: string
+          player_number: number
+          timeouts: number
+          turns_taken: number
+        }
+        Insert: {
+          bar_count?: number
+          bonus_count?: number
+          club_count?: number
+          completed_circuit?: boolean
+          correct_answers?: number
+          created_at?: string
+          final_position?: number
+          final_rank?: number | null
+          game_id: string
+          id?: string
+          incorrect_answers?: number
+          jail_count?: number
+          pawn_color?: string
+          player_name: string
+          player_number: number
+          timeouts?: number
+          turns_taken?: number
+        }
+        Update: {
+          bar_count?: number
+          bonus_count?: number
+          club_count?: number
+          completed_circuit?: boolean
+          correct_answers?: number
+          created_at?: string
+          final_position?: number
+          final_rank?: number | null
+          game_id?: string
+          id?: string
+          incorrect_answers?: number
+          jail_count?: number
+          pawn_color?: string
+          player_name?: string
+          player_number?: number
+          timeouts?: number
+          turns_taken?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_results: {
+        Row: {
+          correct_option: string
+          created_at: string
+          difficulty: string
+          game_id: string
+          id: string
+          is_correct: boolean
+          is_timeout: boolean
+          player_id: string | null
+          position: number | null
+          question_record_id: string
+          selected_option: string | null
+          theme: string
+        }
+        Insert: {
+          correct_option: string
+          created_at?: string
+          difficulty: string
+          game_id: string
+          id?: string
+          is_correct?: boolean
+          is_timeout?: boolean
+          player_id?: string | null
+          position?: number | null
+          question_record_id: string
+          selected_option?: string | null
+          theme: string
+        }
+        Update: {
+          correct_option?: string
+          created_at?: string
+          difficulty?: string
+          game_id?: string
+          id?: string
+          is_correct?: boolean
+          is_timeout?: boolean
+          player_id?: string | null
+          position?: number | null
+          question_record_id?: string
+          selected_option?: string | null
+          theme?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_results_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_results_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          correct_answer: string
+          correct_option: string
+          created_at: string
+          difficulty: string
+          id: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question: string
+          record_id: string
+          record_type: string
+          theme: string
+        }
+        Insert: {
+          correct_answer: string
+          correct_option: string
+          created_at?: string
+          difficulty: string
+          id?: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+          question: string
+          record_id: string
+          record_type?: string
+          theme: string
+        }
+        Update: {
+          correct_answer?: string
+          correct_option?: string
+          created_at?: string
+          difficulty?: string
+          id?: string
+          option_a?: string
+          option_b?: string
+          option_c?: string
+          option_d?: string
+          question?: string
+          record_id?: string
+          record_type?: string
+          theme?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
