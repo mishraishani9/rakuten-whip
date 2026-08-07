@@ -178,5 +178,57 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility board-surface {
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in oklab, var(--primary) 35%, transparent), transparent 60%),
+    linear-gradient(150deg, var(--board), color-mix(in oklab, var(--board) 70%, black));
+}
+
+@utility text-gradient-gold {
+  background: linear-gradient(100deg, var(--gold), color-mix(in oklab, var(--gold) 55%, white));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes pawn-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes answer-blink {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@utility animate-answer-blink {
+  animation: answer-blink 0.45s ease-in-out 2;
+}
+
+@utility animate-pawn-pop {
+  animation: pawn-pop 0.35s ease-out;
 }
