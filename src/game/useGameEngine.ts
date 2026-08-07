@@ -1,0 +1,766 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  BOARD_POSITIONS,
+  CORNER_POSITION,
+  EVENT_RULES,
+  GAME_SETTINGS,
+  squareAt,
+  type BoardTheme,
+  type Difficulty,
+} from "./config";
+import type { GameState, PlayerState, Question, Snapshot } from "./types";
+import { loadQuestionBank, pickQuestion, poolFor } from "@/services/questionService";
+import * as gameService from "@/services/gameService";
+
+export type SetupPlayer = { number: number; name: string; color: string };
+
+const SESSION_KEY = "ipquiz.activeGame";
+
+function makePlayer(p: SetupPlayer): PlayerState {
+  return {
+    id: `p${p.number}`,
+    number: p.number,
+    name: p.name,
+    color: p.color,
+    position: 0,
+    laps: 0,
+    correct: 0,
+    incorrect: 0,
+    timeouts: 0,
+    bonuses: 0,
+    club: 0,
+    bar: 0,
+    jail: 0,
+    turns: 0,
+    missTurns: 0,
+    inJail: false,
+    completedCircuit: false,
+  };
+}
+
+export function initialState(gameName: string, setup: SetupPlayer[]): GameState {
+  const players = setup.map(makePlayer);
+  return {
+    gameId: null,
+    gameName,
+    phase: "READY",
+    phaseBeforePause: null,
+    players,
+    currentPlayerId: players[0]?.id ?? "p1",
+    turnNumber: 1,
+    lastDice: null,
+    usedQuestionIds: [],
+    currentQuestion: null,
+    currentSquareTheme: null,
+    currentSquareDifficulty: null,
+    selectedOption: null,
+    wasTimeout: false,
+    timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+    notice: null,
+    winnerIds: [],
+    startedAt: Date.now(),
+    questionsAnswered: 0,
+    saveError: null,
+  };
+}
+
+export function loadStoredState(): GameState | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as GameState;
+  } catch {
+    return null;
+  }
+}
+
+export function storeState(state: GameState | null) {
+  if (typeof window === "undefined") return;
+  if (!state) window.sessionStorage.removeItem(SESSION_KEY);
+  else window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+}
+
+function nextEligible(state: GameState, fromId: string): { players: PlayerState[]; nextId: string } {
+  const players = state.players.map((p) => ({ ...p }));
+  const startIndex = players.findIndex((p) => p.id === fromId);
+  for (let step = 1; step <= players.length; step++) {
+    const candidate = players[(startIndex + step) % players.length]!;
+    if (candidate.missTurns > 0) {
+      candidate.missTurns -= 1;
+      continue;
+    }
+    return { players, nextId: candidate.id };
+  }
+  return { players, nextId: fromId };
+}
+
+export function useGameEngine() {
+  const [state, setState] = useState<GameState | null>(null);
+  const [bank, setBank] = useState<Question[]>([]);
+  const [bankError, setBankError] = useState<string | null>(null);
+  const historyRef = useRef<Snapshot[]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+  const stateRef = useRef<GameState | null>(null);
+  stateRef.current = state;
+
+  useEffect(() => {
+    loadQuestionBank()
+      .then(setBank)
+      .catch((error: unknown) => setBankError(error instanceof Error ? error.message : "Question bank unavailable"));
+  }, []);
+
+  useEffect(() => {
+    storeState(state);
+  }, [state]);
+
+  const update = useCallback((mutate: (prev: GameState) => GameState) => {
+    setState((prev) => (prev ? mutate(prev) : prev));
+  }, []);
+
+  const pushHistory = useCallback(() => {
+    const current = stateRef.current;
+    if (!current) return;
+    const { phaseBeforePause: _ignored, ...snapshot } = current;
+    historyRef.current = [...historyRef.current, snapshot].slice(-GAME_SETTINGS.MAX_ROLLBACKS);
+    setUndoCount(historyRef.current.length);
+  }, []);
+
+  const safe = useCallback(async (action: () => Promise<void>) => {
+    try {
+      await action();
+      update((prev) => (prev.saveError ? { ...prev, saveError: null } : prev));
+    } catch {
+      update((prev) => ({
+        ...prev,
+        saveError:
+          "Your current game is still active, but saving to game history is temporarily unavailable.",
+      }));
+    }
+  }, [update]);
+
+  /** Begin a game: creates the backend records but never blocks gameplay. */
+  const startGame = useCallback(
+    async (gameName: string, setup: SetupPlayer[]) => {
+      const fresh = initialState(gameName, setup);
+      historyRef.current = [];
+      setUndoCount(0);
+      setState(fresh);
+      try {
+        const { gameId, dbIdByNumber } = await gameService.createGame(gameName, fresh.players);
+        setState((prev) =>
+          prev
+            ? {
+                ...prev,
+                gameId,
+                players: prev.players.map((p) => ({ ...p, dbId: dbIdByNumber.get(p.number) })),
+              }
+            : prev,
+        );
+      } catch {
+        setState((prev) =>
+          prev
+            ? {
+                ...prev,
+                saveError:
+                  "Your current game is still active, but saving to game history is temporarily unavailable.",
+              }
+            : prev,
+        );
+      }
+    },
+    [],
+  );
+
+  const resumeStored = useCallback(() => {
+    const stored = loadStoredState();
+    if (stored) setState({ ...stored, phase: stored.phase === "PAUSED" ? "PAUSED" : stored.phase });
+    return stored;
+  }, []);
+
+  const currentPlayer = useMemo(
+    () => state?.players.find((p) => p.id === state.currentPlayerId) ?? null,
+    [state],
+  );
+
+  const log = useCallback(
+    (payload: Omit<gameService.EventPayload, "gameId">) => {
+      const current = stateRef.current;
+      if (!current?.gameId) return;
+      void safe(() => gameService.logEvent({ ...payload, gameId: current.gameId! }));
+    },
+    [safe],
+  );
+
+  /** Presents the question for a question square, or the no-question fallback. */
+  const presentQuestion = useCallback(
+    (theme: BoardTheme, difficulty: Difficulty) => {
+      update((prev) => {
+        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds);
+        if (!question) {
+          return {
+            ...prev,
+            phase: "NO_QUESTION",
+            currentQuestion: null,
+            currentSquareTheme: theme,
+            currentSquareDifficulty: difficulty,
+            notice: {
+              title: "No unused questions remain for this category.",
+              body: `${theme} · ${difficulty}`,
+              tone: "warning",
+            },
+          };
+        }
+        return {
+          ...prev,
+          phase: "QUESTION_ACTIVE",
+          currentQuestion: question,
+          currentSquareTheme: theme,
+          currentSquareDifficulty: difficulty,
+          selectedOption: null,
+          wasTimeout: false,
+          timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+          usedQuestionIds: [...prev.usedQuestionIds, question.record_id],
+          notice: null,
+        };
+      });
+      log({ eventType: "QUESTION", theme, difficulty });
+    },
+    [bank, log, update],
+  );
+
+  /** Resolves the square a player landed on. */
+  const resolveLanding = useCallback(
+    (playerId: string, position: number, dice: number, bonusChain: number) => {
+      const square = squareAt(position);
+      const applyPlayer = (mutate: (p: PlayerState) => PlayerState) =>
+        update((prev) => ({
+          ...prev,
+          players: prev.players.map((p) => (p.id === playerId ? mutate({ ...p }) : p)),
+        }));
+
+      switch (square.type) {
+        case "question":
+          presentQuestion(square.theme, square.difficulty);
+          return;
+        case "bonus": {
+          applyPlayer((p) => ({ ...p, bonuses: p.bonuses + 1 }));
+          log({ eventType: "BONUS", position, diceValue: dice });
+          update((prev) => ({
+            ...prev,
+            phase: "BONUS_ACTION",
+            notice: {
+              title: `BONUS! Move forward ${square.bonusMove} spaces.`,
+              tone: "success",
+            },
+          }));
+          window.setTimeout(() => {
+            const current = stateRef.current;
+            if (!current || current.phase === "PAUSED") return;
+            let landed = position;
+            let won = false;
+            update((prev) => ({
+              ...prev,
+              players: prev.players.map((p) => {
+                if (p.id !== playerId) return p;
+                const raw = p.position + square.bonusMove;
+                if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                  won = true;
+                  landed = 0;
+                  return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                }
+                landed = raw;
+                return { ...p, position: raw };
+              }),
+            }));
+            if (won) {
+              declareWinner(playerId);
+              return;
+            }
+            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed).type === "bonus") {
+              update((prev) => ({
+                ...prev,
+                phase: "PLAYER_TURN",
+                notice: { title: "Bonus chain limit reached. Turn continues.", tone: "info" },
+              }));
+              return;
+            }
+            resolveLanding(playerId, landed, dice, bonusChain + 1);
+          }, 900);
+          return;
+        }
+        case "event": {
+          const outcome = EVENT_RULES[dice];
+          if (!outcome) {
+            update((prev) => ({ ...prev, phase: "PLAYER_TURN" }));
+            return;
+          }
+          update((prev) => ({
+            ...prev,
+            phase: "SPECIAL_EVENT",
+            notice: { title: `? ${outcome.label}`, body: outcome.description, tone: "warning" },
+          }));
+          if (outcome.kind === "bonus") {
+            applyPlayer((p) => ({ ...p, bonuses: p.bonuses + 1 }));
+            log({ eventType: "BONUS", position, diceValue: dice });
+            window.setTimeout(() => {
+              const current = stateRef.current;
+              if (!current || current.phase === "PAUSED") return;
+              let landed = position;
+              let won = false;
+              update((prev) => ({
+                ...prev,
+                players: prev.players.map((p) => {
+                  if (p.id !== playerId) return p;
+                  const raw = p.position + outcome.amount;
+                  if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                    won = true;
+                    landed = 0;
+                    return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                  }
+                  landed = raw;
+                  return { ...p, position: raw };
+                }),
+              }));
+              if (won) declareWinner(playerId);
+              else resolveLanding(playerId, landed, dice, bonusChain + 1);
+            }, 1200);
+            return;
+          }
+          const target = CORNER_POSITION[outcome.target];
+          window.setTimeout(() => {
+            const current = stateRef.current;
+            if (!current || current.phase === "PAUSED") return;
+            update((prev) => ({
+              ...prev,
+              players: prev.players.map((p) => (p.id === playerId ? { ...p, position: target } : p)),
+            }));
+            resolveLanding(playerId, target, dice, bonusChain + 1);
+          }, 1200);
+          return;
+        }
+        case "club":
+          applyPlayer((p) => ({ ...p, club: p.club + 1, missTurns: p.missTurns + GAME_SETTINGS.CLUB_MISS_TURNS }));
+          log({ eventType: "CLUB", position });
+          update((prev) => ({
+            ...prev,
+            phase: "SPECIAL_EVENT",
+            notice: { title: "You are in CLUB. Miss your next turn.", tone: "warning" },
+          }));
+          return;
+        case "bar":
+          applyPlayer((p) => ({ ...p, bar: p.bar + 1, missTurns: p.missTurns + GAME_SETTINGS.BAR_MISS_TURNS }));
+          log({ eventType: "BAR", position });
+          update((prev) => ({
+            ...prev,
+            phase: "SPECIAL_EVENT",
+            notice: { title: "You are in BAR. Miss your next two turns.", tone: "warning" },
+          }));
+          return;
+        case "jail":
+          applyPlayer((p) => ({ ...p, jail: p.jail + 1, inJail: true }));
+          log({ eventType: "JAIL", position });
+          update((prev) => ({
+            ...prev,
+            phase: "SPECIAL_EVENT",
+            notice: {
+              title: "You are in JAIL.",
+              body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} on your turn to escape.`,
+              tone: "danger",
+            },
+          }));
+          return;
+        case "start":
+          update((prev) => ({
+            ...prev,
+            phase: "PLAYER_TURN",
+            notice: { title: "Back at START.", tone: "info" },
+          }));
+          return;
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bank, log, presentQuestion, update],
+  );
+
+  const declareWinner = useCallback(
+    (playerId: string) => {
+      update((prev) => ({
+        ...prev,
+        phase: "WINNER",
+        winnerIds: prev.winnerIds.includes(playerId) ? prev.winnerIds : [...prev.winnerIds, playerId],
+        currentQuestion: null,
+        notice: null,
+      }));
+      log({ eventType: "MOVE", position: 0 });
+    },
+    [log, update],
+  );
+
+  const endTurn = useCallback(() => {
+    update((prev) => {
+      const { players, nextId } = nextEligible(prev, prev.currentPlayerId);
+      return {
+        ...prev,
+        players,
+        currentPlayerId: nextId,
+        currentQuestion: null,
+        selectedOption: null,
+        wasTimeout: false,
+        currentSquareTheme: null,
+        currentSquareDifficulty: null,
+        phase: "PLAYER_TURN",
+        turnNumber: prev.turnNumber + 1,
+        timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+        notice: null,
+      };
+    });
+  }, [update]);
+
+  const move = useCallback(
+    (dice: number) => {
+      const current = stateRef.current;
+      if (!current) return;
+      const player = current.players.find((p) => p.id === current.currentPlayerId);
+      if (!player) return;
+      pushHistory();
+
+      // Jail escape attempt
+      if (player.inJail) {
+        const escaped = GAME_SETTINGS.JAIL_RELEASE_ROLLS.includes(dice as never);
+        update((prev) => ({
+          ...prev,
+          lastDice: dice,
+          phase: "SPECIAL_EVENT",
+          players: prev.players.map((p) =>
+            p.id === player.id ? { ...p, inJail: !escaped, turns: p.turns + 1 } : p,
+          ),
+          notice: escaped
+            ? { title: "You escaped Jail!", tone: "success" }
+            : { title: "Still in Jail.", body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`, tone: "danger" },
+        }));
+        log({ eventType: "JAIL", diceValue: dice, playerDbId: player.dbId, position: player.position });
+        window.setTimeout(() => endTurn(), 1400);
+        return;
+      }
+
+      let landed = player.position + dice;
+      let won = false;
+      if (landed >= GAME_SETTINGS.BOARD_SIZE) {
+        won = true;
+        landed = 0;
+      }
+
+      update((prev) => ({
+        ...prev,
+        lastDice: dice,
+        phase: "MOVING",
+        notice: null,
+        players: prev.players.map((p) =>
+          p.id === player.id
+            ? {
+                ...p,
+                position: landed,
+                turns: p.turns + 1,
+                laps: won ? p.laps + 1 : p.laps,
+                completedCircuit: won ? true : p.completedCircuit,
+              }
+            : p,
+        ),
+      }));
+      log({ eventType: "MOVE", diceValue: dice, position: landed, playerDbId: player.dbId });
+
+      window.setTimeout(() => {
+        if (won) declareWinner(player.id);
+        else resolveLanding(player.id, landed, dice, 0);
+      }, 450);
+    },
+    [declareWinner, endTurn, log, pushHistory, resolveLanding, update],
+  );
+
+  const selectAnswer = useCallback(
+    (option: "A" | "B" | "C" | "D") => {
+      const current = stateRef.current;
+      if (!current?.currentQuestion || current.phase !== "QUESTION_ACTIVE") return;
+      const question = current.currentQuestion;
+      const isCorrect = question.correct_option === option;
+      update((prev) => ({ ...prev, phase: "ANSWER_SELECTED", selectedOption: option }));
+      window.setTimeout(() => {
+        finishQuestion(option, isCorrect, false);
+      }, GAME_SETTINGS.REVEAL_DELAY_MS);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [update],
+  );
+
+  const finishQuestion = useCallback(
+    (option: "A" | "B" | "C" | "D" | null, isCorrect: boolean, isTimeout: boolean) => {
+      const current = stateRef.current;
+      if (!current?.currentQuestion) return;
+      const question = current.currentQuestion;
+      const player = current.players.find((p) => p.id === current.currentPlayerId);
+      update((prev) => ({
+        ...prev,
+        phase: "ANSWER_REVEALED",
+        selectedOption: option,
+        wasTimeout: isTimeout,
+        questionsAnswered: prev.questionsAnswered + 1,
+        players: prev.players.map((p) =>
+          p.id === prev.currentPlayerId
+            ? {
+                ...p,
+                correct: isCorrect ? p.correct + 1 : p.correct,
+                incorrect: !isCorrect ? p.incorrect + 1 : p.incorrect,
+                timeouts: isTimeout ? p.timeouts + 1 : p.timeouts,
+              }
+            : p,
+        ),
+        notice: isCorrect
+          ? { title: "Correct! You get another turn.", tone: "success" }
+          : {
+              title: isTimeout ? "Time up. Turn passes to the next player." : "Incorrect. Turn passes to the next player.",
+              tone: "danger",
+            },
+      }));
+      if (current.gameId) {
+        void safe(() =>
+          gameService.logQuestionResult({
+            gameId: current.gameId!,
+            playerDbId: player?.dbId,
+            questionRecordId: question.record_id,
+            theme: question.theme,
+            difficulty: question.difficulty,
+            selectedOption: option,
+            correctOption: question.correct_option,
+            isCorrect,
+            isTimeout,
+            position: player?.position ?? 0,
+          }),
+        );
+        log({
+          eventType: isTimeout ? "TIMEOUT" : isCorrect ? "CORRECT" : "INCORRECT",
+          playerDbId: player?.dbId,
+          questionId: question.record_id,
+          theme: question.theme,
+          difficulty: question.difficulty,
+          isCorrect,
+          position: player?.position,
+        });
+      }
+    },
+    [log, safe, update],
+  );
+
+  const timeout = useCallback(() => {
+    const current = stateRef.current;
+    if (!current || current.phase !== "QUESTION_ACTIVE") return;
+    finishQuestion(null, false, true);
+  }, [finishQuestion]);
+
+  const continueAfterReveal = useCallback(() => {
+    const current = stateRef.current;
+    if (!current) return;
+    const question = current.currentQuestion;
+    const wasCorrect = question && current.selectedOption === question.correct_option && !current.wasTimeout;
+    if (wasCorrect) {
+      update((prev) => ({
+        ...prev,
+        phase: "PLAYER_TURN",
+        currentQuestion: null,
+        selectedOption: null,
+        currentSquareTheme: null,
+        currentSquareDifficulty: null,
+        timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+        notice: { title: "Same player continues — enter the next dice value.", tone: "success" },
+      }));
+      return;
+    }
+    endTurn();
+  }, [endTurn, update]);
+
+  const pause = useCallback(() => {
+    update((prev) =>
+      prev.phase === "PAUSED" ? prev : { ...prev, phaseBeforePause: prev.phase, phase: "PAUSED" },
+    );
+  }, [update]);
+
+  const resume = useCallback(() => {
+    update((prev) =>
+      prev.phase === "PAUSED"
+        ? { ...prev, phase: prev.phaseBeforePause ?? "PLAYER_TURN", phaseBeforePause: null }
+        : prev,
+    );
+  }, [update]);
+
+  const tick = useCallback(() => {
+    update((prev) =>
+      prev.phase === "QUESTION_ACTIVE" ? { ...prev, timeRemaining: Math.max(0, prev.timeRemaining - 1) } : prev,
+    );
+  }, [update]);
+
+  const differentQuestion = useCallback(() => {
+    const current = stateRef.current;
+    if (!current?.currentSquareTheme || !current.currentSquareDifficulty) return;
+    const discarded = current.currentQuestion?.record_id;
+    // The discarded question is released back into the pool.
+    const remaining = current.usedQuestionIds.filter((id) => id !== discarded);
+    const replacement = pickQuestion(
+      bank,
+      current.currentSquareTheme,
+      current.currentSquareDifficulty,
+      remaining,
+      discarded,
+    );
+    if (!replacement) {
+      update((prev) => ({
+        ...prev,
+        notice: { title: "No other unused question is available for this category.", tone: "warning" },
+      }));
+      return;
+    }
+    update((prev) => ({
+      ...prev,
+      phase: "QUESTION_ACTIVE",
+      currentQuestion: replacement,
+      usedQuestionIds: [...remaining, replacement.record_id],
+      selectedOption: null,
+      wasTimeout: false,
+      timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+      notice: null,
+    }));
+  }, [bank, update]);
+
+  const skipQuestion = useCallback(() => {
+    log({ eventType: "MOVE" });
+    endTurn();
+  }, [endTurn, log]);
+
+  const fallbackQuestion = useCallback(
+    (theme: BoardTheme, difficulty: Difficulty) => presentQuestion(theme, difficulty),
+    [presentQuestion],
+  );
+
+  const resetUsedQuestions = useCallback(() => {
+    update((prev) => ({
+      ...prev,
+      usedQuestionIds: [],
+      notice: { title: "Used questions were reset for this game.", tone: "info" },
+    }));
+  }, [update]);
+
+  const selectPlayer = useCallback(
+    (playerId: string) => {
+      update((prev) =>
+        prev.phase === "QUESTION_ACTIVE" || prev.phase === "ANSWER_SELECTED"
+          ? prev
+          : { ...prev, currentPlayerId: playerId, notice: null, phase: "PLAYER_TURN" },
+      );
+    },
+    [update],
+  );
+
+  const manualMove = useCallback(
+    (playerId: string, position: number) => {
+      pushHistory();
+      const player = stateRef.current?.players.find((p) => p.id === playerId);
+      update((prev) => ({
+        ...prev,
+        players: prev.players.map((p) => (p.id === playerId ? { ...p, position } : p)),
+        notice: { title: "Administrative move applied.", body: `Player moved to position ${position}.`, tone: "info" },
+      }));
+      log({ eventType: "MANUAL_MOVE", position, playerDbId: player?.dbId });
+    },
+    [log, pushHistory, update],
+  );
+
+  const renamePlayer = useCallback(
+    (playerId: string, name: string) => {
+      const player = stateRef.current?.players.find((p) => p.id === playerId);
+      update((prev) => ({
+        ...prev,
+        players: prev.players.map((p) => (p.id === playerId ? { ...p, name } : p)),
+      }));
+      if (player?.dbId) void safe(() => gameService.renamePlayer(player.dbId!, name));
+    },
+    [safe, update],
+  );
+
+  const renameGame = useCallback(
+    (name: string) => {
+      const gameId = stateRef.current?.gameId;
+      update((prev) => ({ ...prev, gameName: name }));
+      if (gameId) void safe(() => gameService.renameGame(gameId, name));
+    },
+    [safe, update],
+  );
+
+  const undo = useCallback(() => {
+    const stack = historyRef.current;
+    if (stack.length === 0) return false;
+    const snapshot = stack[stack.length - 1]!;
+    historyRef.current = stack.slice(0, -1);
+    setUndoCount(historyRef.current.length);
+    setState({ ...snapshot, phaseBeforePause: null });
+    log({ eventType: "ROLLBACK" });
+    return true;
+  }, [log]);
+
+  const continuePlay = useCallback(() => {
+    update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+    endTurn();
+  }, [endTurn, update]);
+
+  const endGame = useCallback(async () => {
+    const current = stateRef.current;
+    if (!current) return;
+    update((prev) => ({ ...prev, phase: "GAME_COMPLETE" }));
+    await safe(() => gameService.saveGameResults({ ...current, phase: "GAME_COMPLETE" }));
+  }, [safe, update]);
+
+  const discard = useCallback(() => {
+    historyRef.current = [];
+    setUndoCount(0);
+    setState(null);
+    storeState(null);
+  }, []);
+
+  const remainingForCurrentSquare = useMemo(() => {
+    if (!state?.currentSquareTheme || !state.currentSquareDifficulty) return 0;
+    return poolFor(bank, state.currentSquareTheme, state.currentSquareDifficulty, state.usedQuestionIds).length;
+  }, [bank, state]);
+
+  const questionsRemaining = bank.length - (state?.usedQuestionIds.length ?? 0);
+
+  return {
+    state,
+    bank,
+    bankError,
+    currentPlayer,
+    undoCount,
+    questionsRemaining,
+    remainingForCurrentSquare,
+    boardPositions: BOARD_POSITIONS,
+    startGame,
+    resumeStored,
+    move,
+    selectAnswer,
+    timeout,
+    continueAfterReveal,
+    pause,
+    resume,
+    tick,
+    differentQuestion,
+    skipQuestion,
+    fallbackQuestion,
+    resetUsedQuestions,
+    selectPlayer,
+    manualMove,
+    renamePlayer,
+    renameGame,
+    undo,
+    endTurn,
+    continuePlay,
+    endGame,
+    discard,
+  };
+}
