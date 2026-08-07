@@ -10,7 +10,7 @@ An offline, single-screen board game for IP awareness workshops. The presenter d
 
 **Game board** — 24 perimeter squares in a CSS-grid square board inspired by classic property boards (own artwork, no Monopoly assets). Corners: START (0), CLUB (6), BAR (12), JAIL (18). Between them: 18 question squares showing THEME + DIFFICULTY, 2 bonus squares, 3 event ("?") squares. Layout is fixed for the whole game and lives in one config file.
 
-**Pawns** — rounded numbered tokens, distinct colors, name label, animated movement, offset when sharing a square, glow when selected.
+**Pawns** — colored pawns similar to chess to give a 3D feel, distinct colors, name label, animated movement, offset when sharing a square, glow when selected.
 
 **Presenter panel** — current player, dice input (1–6, validated, no auto-roll), MOVE, compact clickable player list, live status (turn number, questions answered/remaining, game time) and per-player stats (correct / incorrect / timeouts / bonus / club / bar / jail / position).
 

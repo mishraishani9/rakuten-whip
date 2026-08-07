@@ -4,6 +4,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme inline {
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-board: var(--board);
+  --color-board-foreground: var(--board-foreground);
+  --color-easy: var(--easy);
+  --color-medium: var(--medium);
+  --color-hard: var(--hard);
+  --color-square-patent: var(--square-patent);
+  --color-square-trademark: var(--square-trademark);
+  --color-square-fundamentals: var(--square-fundamentals);
+  --color-square-priorart: var(--square-priorart);
+  --color-square-inventorship: var(--square-inventorship);
+  --color-square-patentability: var(--square-patentability);
+  --color-square-tradesecrets: var(--square-tradesecrets);
+  --color-square-seps: var(--square-seps);
+  --color-square-copyright: var(--square-copyright);
+  --shadow-board: 0 30px 60px -25px color-mix(in oklab, var(--primary) 55%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--gold) 60%, transparent), 0 12px 30px -12px color-mix(in oklab, var(--gold) 65%, transparent);
+}
+
 /*
  * Design system definition.
  *
@@ -63,25 +90,36 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(0.981 0.008 250);
+  --foreground: oklch(0.19 0.05 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.19 0.05 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.19 0.05 265);
+  --primary: oklch(0.42 0.17 264);
+  --primary-foreground: oklch(0.99 0.005 250);
+  --secondary: oklch(0.945 0.02 250);
+  --secondary-foreground: oklch(0.28 0.07 265);
+  --muted: oklch(0.955 0.012 250);
+  --muted-foreground: oklch(0.52 0.04 258);
+  --accent: oklch(0.93 0.06 255);
+  --accent-foreground: oklch(0.26 0.08 265);
+  --gold: oklch(0.8 0.14 84);
+  --gold-foreground: oklch(0.24 0.06 265);
+  --success: oklch(0.62 0.17 150);
+  --success-foreground: oklch(0.99 0.005 250);
+  --warning: oklch(0.72 0.17 55);
+  --warning-foreground: oklch(0.2 0.05 60);
+  --board: oklch(0.3 0.12 264);
+  --board-foreground: oklch(0.98 0.01 250);
+  --easy: oklch(0.66 0.15 155);
+  --medium: oklch(0.74 0.15 65);
+  --hard: oklch(0.6 0.2 20);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --border: oklch(0.9 0.018 255);
+  --input: oklch(0.9 0.018 255);
+  --ring: oklch(0.55 0.14 264);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -98,20 +136,31 @@
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
+  --background: oklch(0.16 0.04 265);
   --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
+  --card: oklch(0.22 0.05 265);
   --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
+  --popover: oklch(0.22 0.05 265);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.66 0.16 264);
+  --primary-foreground: oklch(0.99 0.005 250);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
   --muted-foreground: oklch(0.704 0.04 256.788);
   --accent: oklch(0.279 0.041 260.031);
   --accent-foreground: oklch(0.984 0.003 247.858);
+  --gold: oklch(0.82 0.14 84);
+  --gold-foreground: oklch(0.2 0.05 265);
+  --success: oklch(0.68 0.17 150);
+  --success-foreground: oklch(0.15 0.04 150);
+  --warning: oklch(0.76 0.17 55);
+  --warning-foreground: oklch(0.18 0.05 60);
+  --board: oklch(0.26 0.1 264);
+  --board-foreground: oklch(0.98 0.01 250);
+  --easy: oklch(0.7 0.15 155);
+  --medium: oklch(0.78 0.15 65);
+  --hard: oklch(0.65 0.2 20);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(1 0 0 / 10%);
@@ -136,9 +185,77 @@
   * {
     border-color: var(--color-border);
   }
+}
+
+:root,
+.dark {
+  --square-patent: oklch(0.62 0.19 255);
+  --square-trademark: oklch(0.66 0.18 150);
+  --square-fundamentals: oklch(0.72 0.16 85);
+  --square-priorart: oklch(0.6 0.19 300);
+  --square-inventorship: oklch(0.66 0.17 200);
+  --square-patentability: oklch(0.63 0.2 25);
+  --square-tradesecrets: oklch(0.55 0.14 275);
+  --square-seps: oklch(0.68 0.16 120);
+  --square-copyright: oklch(0.64 0.19 340);
+}
+
+@layer base {
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
   }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility board-surface {
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in oklab, var(--primary) 35%, transparent), transparent 60%),
+    linear-gradient(150deg, var(--board), color-mix(in oklab, var(--board) 70%, black));
+}
+
+@utility text-gradient-gold {
+  background: linear-gradient(100deg, var(--gold), color-mix(in oklab, var(--gold) 55%, white));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes pawn-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes answer-blink {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@utility animate-answer-blink {
+  animation: answer-blink 0.45s ease-in-out 2;
+}
+
+@utility animate-pawn-pop {
+  animation: pawn-pop 0.35s ease-out;
 }
