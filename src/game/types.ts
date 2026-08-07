@@ -16,7 +16,7 @@ export type Question = {
 
 export type PlayerState = {
   id: string;
-  dbId?: string;
+  dbId?: string | undefined;
   number: number;
   name: string;
   color: string;

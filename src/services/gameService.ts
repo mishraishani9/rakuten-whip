@@ -76,14 +76,14 @@ export async function renamePlayer(playerDbId: string, name: string) {
 
 export type EventPayload = {
   gameId: string;
-  playerDbId?: string;
+  playerDbId?: string | undefined;
   eventType: string;
-  position?: number;
-  diceValue?: number;
-  theme?: string;
-  difficulty?: string;
-  questionId?: string;
-  isCorrect?: boolean;
+  position?: number | undefined;
+  diceValue?: number | undefined;
+  theme?: string | undefined;
+  difficulty?: string | undefined;
+  questionId?: string | undefined;
+  isCorrect?: boolean | undefined;
 };
 
 export async function logEvent(payload: EventPayload) {
@@ -103,7 +103,7 @@ export async function logEvent(payload: EventPayload) {
 
 export type QuestionResultPayload = {
   gameId: string;
-  playerDbId?: string;
+  playerDbId?: string | undefined;
   questionRecordId: string;
   theme: string;
   difficulty: string;
