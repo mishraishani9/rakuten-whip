@@ -11,11 +11,11 @@ import {
   type BankStats,
 } from "@/services/questionService";
 
-const TITLE = "Question Bank & CSV Import — Business of IP";
+const TITLE = "Bulk Question Upload — WHIP";
 const DESCRIPTION =
-  "Inspect the intellectual-property question bank by theme and difficulty, and import or replace questions from a validated CSV file.";
+  "Bulk-upload intellectual-property questions to WHIP from a validated CSV file, and review bank coverage by theme and difficulty.";
 
-export const Route = createFileRoute("/questions")({
+export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
       { title: TITLE },
@@ -73,10 +73,10 @@ function QuestionsPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8">
       <Link to="/" className="text-sm text-muted-foreground underline hover:text-foreground">
-        ← Back to game
+        ← Main menu
       </Link>
       <h1 className="mt-3 font-display text-3xl font-black uppercase tracking-tight text-foreground">
-        Question bank
+        Bulk upload
       </h1>
 
       {loadError && <p className="mt-4 text-sm text-foreground">{loadError}</p>}

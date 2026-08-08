@@ -118,3 +118,17 @@ export async function existingRecordIds(): Promise<Set<string>> {
   const bank = await loadQuestionBank();
   return new Set(bank.map((q) => q.record_id));
 }
+export async function updateQuestion(recordId: string, patch: Partial<Question>) {
+  const { error } = await supabase
+    .from("questions")
+    .update(patch as never)
+    .eq("record_id", recordId);
+  if (error) throw error;
+  clearQuestionCache();
+}
+
+export async function deleteQuestion(recordId: string) {
+  const { error } = await supabase.from("questions").delete().eq("record_id", recordId);
+  if (error) throw error;
+  clearQuestionCache();
+}
