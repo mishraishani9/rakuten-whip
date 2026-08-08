@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth, signInWithGoogle, signOutEverywhere } from "@/hooks/useAuth";
 import { loadStoredState } from "@/game/useGameEngine";
+import { gameAudio } from "@/game/audio";
 import { cn } from "@/lib/utils";
 
 const TITLE = "WHIP — World & Highlights in Intellectual Property Quiz Game";
@@ -72,6 +73,13 @@ function Home() {
     return () => window.clearTimeout(id);
   }, []);
 
+  useEffect(() => {
+    gameAudio.playTrack("menu");
+    const unlock = () => gameAudio.unlock();
+    window.addEventListener("pointerdown", unlock, { once: true });
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, []);
+
   if (splash) {
     return (
       <main
@@ -129,8 +137,8 @@ function Home() {
       <nav className="relative mt-9 flex w-full flex-col items-center gap-3.5">
         <MenuButton to="/play" label="New Game" hint="Configure board &amp; players" />
         <MenuButton to="/play" label="Load Game" hint={hasStored ? "Resume saved session" : "No saved session"} disabled={!hasStored} />
-        <MenuButton to="/history" label="Analytics" hint="Cross-session insights" />
-        <MenuButton to="/history" label="Games History" hint="Every past session" />
+        {auth.isStaff && <MenuButton to="/history" label="Games History" hint="Every past session" />}
+        {auth.isStaff && <MenuButton to="/history" label="Analytics" hint="Cross-session insights" />}
         {auth.isStaff && <MenuButton to="/questions" label="Audit Questions" hint="Review &amp; correct the bank" />}
         {auth.isStaff && <MenuButton to="/upload" label="Bulk Upload" hint="Import questions from CSV" />}
         {auth.isAdmin && <MenuButton to="/admin" label="Roles &amp; Invites" hint="Approve presenters" />}
@@ -140,8 +148,9 @@ function Home() {
       </nav>
 
       <p className="relative mt-10 max-w-lg text-center text-xs text-muted-foreground">
-        Everyone signs in as a player by default. Presenters and admins unlock question auditing, bulk
-        upload and in-game player management.
+        Everyone signs in as a player by default. Presenters and admins unlock games history, analytics,
+        question auditing, bulk upload and in-game player management. Roles &amp; identity management is
+        admin-only.
       </p>
 
       {!auth.user && (
