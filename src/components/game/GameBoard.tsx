@@ -71,7 +71,7 @@ function SquareBody({ square }: { square: BoardPosition }) {
   if (square.type === "finish") {
     return (
       <span className="flex h-full flex-col items-center justify-center text-center">
-        <span className="text-lg">🏁</span>
+        <span className="text-lg">⚑</span>
         <span className="text-[0.6rem] font-black uppercase tracking-widest text-gold">Finish</span>
       </span>
     );
@@ -109,7 +109,7 @@ export function GameBoard({
   const left = timeRemaining ?? total;
 
   return (
-    <div className="relative mx-auto -mb-8 w-full max-w-[min(72vh,820px)] [perspective:2200px]">
+    <div className="relative mx-auto w-full max-w-[min(72vh,820px)] [perspective:2200px]">
       <div className="board-surface board-isometric relative aspect-square w-full rounded-[1.75rem] p-2 shadow-board">
         <div
           className="grid h-full w-full gap-1"
@@ -204,7 +204,7 @@ export function GameBoard({
               </p>
               <p>★ jumps you forward 3–4 houses. ⚠ pushes you back 2–3 houses.</p>
               <p>Wrong answer or timeout: your pawn recedes to where it stood before the roll.</p>
-              <p>Play runs clockwise from START ▶ to the 🏁 FINISH line.</p>
+              <p>Play runs clockwise from START ▶ to the ⚑ FINISH line.</p>
             </div>
           </div>
         </div>

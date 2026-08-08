@@ -171,7 +171,7 @@ function PlayPage() {
           {isFinished && (
             <div className="rounded-xl border border-gold/70 bg-gold/10 p-5">
               <p className="font-display text-2xl font-black uppercase tracking-wide text-foreground">
-                {state.phase === "WINNER" ? "🏁 We have a winner!" : "Game complete"}
+                {state.phase === "WINNER" ? "⚑ We have a winner!" : "Game complete"}
               </p>
               <ol className="mt-3 space-y-1 text-sm">
                 {ranked.map((p, i) => (
