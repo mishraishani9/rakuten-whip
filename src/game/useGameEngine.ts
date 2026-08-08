@@ -748,6 +748,31 @@ export function useGameEngine() {
     [safe, update],
   );
 
+  /** Presenter/admin tool: drop a player mid-game. */
+  const removePlayer = useCallback(
+    (playerId: string) => {
+      pushHistory();
+      update((prev) => {
+        if (prev.players.length <= 1) return prev;
+        const removed = prev.players.find((p) => p.id === playerId);
+        const players = prev.players.filter((p) => p.id !== playerId);
+        const wasCurrent = prev.currentPlayerId === playerId;
+        return {
+          ...prev,
+          players,
+          currentPlayerId: wasCurrent ? players[0]!.id : prev.currentPlayerId,
+          currentQuestion: wasCurrent ? null : prev.currentQuestion,
+          selectedOption: wasCurrent ? null : prev.selectedOption,
+          phase: wasCurrent ? "PLAYER_TURN" : prev.phase,
+          winnerIds: prev.winnerIds.filter((id) => id !== playerId),
+          notice: { title: `${removed?.name ?? "Player"} was removed from the game.`, tone: "info" },
+        };
+      });
+      log({ eventType: "MANUAL_MOVE" });
+    },
+    [log, pushHistory, update],
+  );
+
   const undo = useCallback(() => {
     const stack = historyRef.current;
     if (stack.length === 0) return false;
@@ -793,7 +818,7 @@ export function useGameEngine() {
     undoCount,
     questionsRemaining,
     remainingForCurrentSquare,
-    boardPositions: BOARD_POSITIONS,
+    board: state?.board ?? BOARD_POSITIONS,
     startGame,
     resumeStored,
     move,
@@ -811,6 +836,7 @@ export function useGameEngine() {
     manualMove,
     renamePlayer,
     renameGame,
+    removePlayer,
     undo,
     endTurn,
     continuePlay,
