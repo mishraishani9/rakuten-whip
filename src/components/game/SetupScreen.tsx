@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GAME_SETTINGS, PAWN_COLORS } from "@/game/config";
-import type { SetupPlayer } from "@/game/useGameEngine";
+import { Switch } from "@/components/ui/switch";
+import { BOARD_SIZE_OPTIONS, GAME_SETTINGS, PAWN_COLORS, housesPerSide } from "@/game/config";
+import type { SetupPlayer, StartOptions } from "@/game/useGameEngine";
+import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
+type DirectoryEntry = { id: string; name: string; email: string | null };
 
 function defaultPlayers(count: number): SetupPlayer[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -12,6 +18,10 @@ function defaultPlayers(count: number): SetupPlayer[] {
     name: `Player ${i + 1}`,
     color: PAWN_COLORS[i % PAWN_COLORS.length]!,
   }));
+}
+
+function renumber(players: SetupPlayer[]): SetupPlayer[] {
+  return players.map((p, i) => ({ ...p, number: i + 1 }));
 }
 
 export function SetupScreen({
@@ -25,31 +35,60 @@ export function SetupScreen({
   bankError: string | null;
   hasStoredGame: boolean;
   onResume: () => void;
-  onStart: (gameName: string, players: SetupPlayer[]) => void;
+  onStart: (gameName: string, players: SetupPlayer[], options: StartOptions) => void;
 }) {
-  const [gameName, setGameName] = useState(
-    `IP Workshop ${new Date().toLocaleDateString("en-GB")}`,
-  );
-  const [players, setPlayers] = useState<SetupPlayer[]>(defaultPlayers(4));
+  const [gameName, setGameName] = useState(`WHIP Workshop ${new Date().toLocaleDateString("en-GB")}`);
+  const [players, setPlayers] = useState<SetupPlayer[]>(defaultPlayers(GAME_SETTINGS.DEFAULT_PLAYERS));
+  const [boardSize, setBoardSize] = useState<number>(GAME_SETTINGS.DEFAULT_BOARD_SIZE);
+  const [goldenFirst, setGoldenFirst] = useState(true);
+  const [directory, setDirectory] = useState<DirectoryEntry[]>([]);
 
-  const setCount = (count: number) => {
-    const clamped = Math.max(GAME_SETTINGS.MIN_PLAYERS, Math.min(GAME_SETTINGS.MAX_PLAYERS, count));
-    setPlayers((prev) =>
-      Array.from({ length: clamped }, (_, i) => prev[i] ?? defaultPlayers(clamped)[i]!),
-    );
+  useEffect(() => {
+    void supabase
+      .from("profiles")
+      .select("id, display_name, email")
+      .order("display_name")
+      .limit(100)
+      .then(({ data }) =>
+        setDirectory(
+          (data ?? []).map((row) => ({
+            id: row.id,
+            name: row.display_name ?? row.email ?? "Player",
+            email: row.email,
+          })),
+        ),
+      );
+  }, []);
+
+  const addPlayer = (name?: string) => {
+    setPlayers((prev) => {
+      if (prev.length >= GAME_SETTINGS.MAX_PLAYERS) return prev;
+      const index = prev.length;
+      return renumber([
+        ...prev,
+        {
+          number: index + 1,
+          name: name ?? `Player ${index + 1}`,
+          color: PAWN_COLORS[index % PAWN_COLORS.length]!,
+        },
+      ]);
+    });
   };
 
+  const removePlayer = (index: number) =>
+    setPlayers((prev) => (prev.length <= GAME_SETTINGS.MIN_PLAYERS ? prev : renumber(prev.filter((_, i) => i !== index))));
+
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">
-        Presenter-controlled workshop game
-      </p>
-      <h1 className="mt-2 font-display text-4xl font-black uppercase tracking-tight text-foreground">
-        Business of IP
+    <main className="mx-auto w-full max-w-4xl px-4 py-10">
+      <Link to="/" className="text-xs uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground">
+        ← Main menu
+      </Link>
+      <h1 className="mt-3 font-display text-4xl font-black uppercase tracking-tight text-gradient-gold">
+        New game
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Roll physical dice, enter the value here, and answer intellectual-property questions to travel
-        the board. {bankSize > 0 ? `${bankSize} questions loaded.` : "Loading question bank…"}
+        Roll physical dice, enter the value, and answer intellectual-property questions to travel the
+        board. {bankSize > 0 ? `${bankSize} questions loaded.` : "Loading question bank…"}
       </p>
       {bankError && (
         <p className="mt-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-foreground">
@@ -57,36 +96,60 @@ export function SetupScreen({
         </p>
       )}
 
-      <section className="mt-8 rounded-xl border border-border bg-card p-5">
+      <section className="mt-8 rounded-2xl border border-border bg-card/80 p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="game-name">Session name</Label>
             <Input id="game-name" value={gameName} onChange={(e) => setGameName(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="player-count">Number of players</Label>
-            <Input
-              id="player-count"
-              type="number"
-              min={GAME_SETTINGS.MIN_PLAYERS}
-              max={GAME_SETTINGS.MAX_PLAYERS}
-              value={players.length}
-              onChange={(e) => setCount(Number(e.target.value))}
-            />
+            <Label htmlFor="board-size">Board size — N houses</Label>
+            <select
+              id="board-size"
+              value={boardSize}
+              onChange={(e) => setBoardSize(Number(e.target.value))}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+            >
+              {BOARD_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size} houses · {housesPerSide(size)} per side
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              4 corners (START, CLUB, BAR, JAIL) plus {housesPerSide(boardSize)} houses on each side.
+            </p>
           </div>
         </div>
 
-        <ul className="mt-5 space-y-2">
+        <div className="mt-5 flex items-center justify-between rounded-xl border border-border bg-secondary/50 p-3">
+          <div>
+            <p className="text-sm font-bold text-foreground">Prioritise golden dataset</p>
+            <p className="text-xs text-muted-foreground">
+              Curated golden questions are served first whenever one fits the square.
+            </p>
+          </div>
+          <Switch checked={goldenFirst} onCheckedChange={setGoldenFirst} aria-label="Prioritise golden dataset" />
+        </div>
+
+        <div className="mt-6 flex items-center justify-between">
+          <h2 className="font-display text-sm font-black uppercase tracking-widest text-foreground">
+            Players ({players.length}/{GAME_SETTINGS.MAX_PLAYERS})
+          </h2>
+          <Button size="sm" variant="secondary" onClick={() => addPlayer()} disabled={players.length >= GAME_SETTINGS.MAX_PLAYERS}>
+            Add custom player
+          </Button>
+        </div>
+
+        <ul className="mt-3 space-y-2">
           {players.map((p, index) => (
-            <li key={p.number} className="flex items-center gap-3">
+            <li key={index} className="flex items-center gap-3">
               <input
                 type="color"
                 aria-label={`Colour for player ${p.number}`}
                 value={p.color}
                 onChange={(e) =>
-                  setPlayers((prev) =>
-                    prev.map((x, i) => (i === index ? { ...x, color: e.target.value } : x)),
-                  )
+                  setPlayers((prev) => prev.map((x, i) => (i === index ? { ...x, color: e.target.value } : x)))
                 }
                 className="h-9 w-9 cursor-pointer rounded-md border border-border bg-background"
               />
@@ -94,22 +157,54 @@ export function SetupScreen({
                 aria-label={`Name for player ${p.number}`}
                 value={p.name}
                 onChange={(e) =>
-                  setPlayers((prev) =>
-                    prev.map((x, i) => (i === index ? { ...x, name: e.target.value } : x)),
-                  )
+                  setPlayers((prev) => prev.map((x, i) => (i === index ? { ...x, name: e.target.value } : x)))
                 }
               />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => removePlayer(index)}
+                disabled={players.length <= GAME_SETTINGS.MIN_PLAYERS}
+                aria-label={`Remove ${p.name}`}
+              >
+                Remove
+              </Button>
             </li>
           ))}
         </ul>
+
+        {directory.length > 0 && (
+          <div className="mt-5 rounded-xl border border-border bg-background/60 p-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Add from registered users
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {directory.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => addPlayer(entry.name)}
+                  disabled={players.length >= GAME_SETTINGS.MAX_PLAYERS}
+                  className={cn(
+                    "rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-gold",
+                    players.length >= GAME_SETTINGS.MAX_PLAYERS && "opacity-40",
+                  )}
+                >
+                  + {entry.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap gap-2">
           <Button
             size="lg"
             onClick={() =>
               onStart(
-                gameName.trim() || "IP Workshop",
-                players.map((p, i) => ({ ...p, name: p.name.trim() || `Player ${i + 1}` })),
+                gameName.trim() || "WHIP Workshop",
+                players.map((p, i) => ({ ...p, number: i + 1, name: p.name.trim() || `Player ${i + 1}` })),
+                { boardSize, goldenFirst },
               )
             }
           >
@@ -117,20 +212,11 @@ export function SetupScreen({
           </Button>
           {hasStoredGame && (
             <Button size="lg" variant="secondary" onClick={onResume}>
-              Resume last session
+              Load saved game
             </Button>
           )}
         </div>
       </section>
-
-      <nav className="mt-6 flex gap-4 text-sm">
-        <Link to="/history" className="text-muted-foreground underline hover:text-foreground">
-          Game history &amp; analytics
-        </Link>
-        <Link to="/questions" className="text-muted-foreground underline hover:text-foreground">
-          Question bank &amp; CSV import
-        </Link>
-      </nav>
     </main>
   );
 }
