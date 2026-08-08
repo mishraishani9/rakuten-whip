@@ -109,7 +109,7 @@ export function GameBoard({
   const left = timeRemaining ?? total;
 
   return (
-    <div className="relative mx-auto w-full max-w-[min(82vh,900px)] [perspective:1600px]">
+    <div className="relative mx-auto -mb-8 w-full max-w-[min(72vh,820px)] [perspective:2200px]">
       <div className="board-surface board-isometric relative aspect-square w-full rounded-[1.75rem] p-2 shadow-board">
         <div
           className="grid h-full w-full gap-1"

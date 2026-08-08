@@ -213,7 +213,7 @@
 
 /* Isometric board tilt so pawns stand out above the tiles. */
 @utility board-isometric {
-  transform: perspective(1600px) rotateX(34deg) scale(0.98);
+  transform: perspective(2200px) rotateX(17deg) scale(0.97);
   transform-style: preserve-3d;
 }
 
