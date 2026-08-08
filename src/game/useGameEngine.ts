@@ -14,7 +14,14 @@ import type { GameState, PlayerState, Question, Snapshot } from "./types";
 import { loadQuestionBank, pickQuestion, poolFor } from "@/services/questionService";
 import * as gameService from "@/services/gameService";
 
-export type SetupPlayer = { number: number; name: string; color: string };
+export type SetupPlayer = {
+  number: number;
+  name: string;
+  color: string;
+  email?: string | null;
+  userId?: string | null;
+  isOnline?: boolean;
+};
 export type StartOptions = { boardSize?: number; goldenFirst?: boolean };
 
 const SESSION_KEY = "ipquiz.activeGame";
