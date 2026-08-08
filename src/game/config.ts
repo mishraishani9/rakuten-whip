@@ -71,6 +71,8 @@ export const DIFFICULTY_TOKEN: Record<Difficulty, string> = {
 
 export const DIFFICULTY_SHORT: Record<Difficulty, string> = { Easy: "E", Medium: "M", Hard: "H" };
 
+const DIFFICULTY_CYCLE: Difficulty[] = ["Easy", "Medium", "Hard"];
+
 /**
  * Board categories map to the raw `theme` values found in the CSV question bank.
  * Adding a new CSV theme only requires listing it under the right category.
@@ -206,7 +208,7 @@ export function buildBoard(size: number): BoardPosition[] {
     const side = Math.floor(i / (perSide + 1));
     const seen = sideDifficultyCount.get(side) ?? 0;
     sideDifficultyCount.set(side, seen + 1);
-    const difficulty: Difficulty = DIFFICULTIES[(seen + side) % DIFFICULTIES.length]!;
+    const difficulty: Difficulty = DIFFICULTY_CYCLE[(seen + side) % DIFFICULTY_CYCLE.length]!;
     const theme = BOARD_THEME_CYCLE[themeIndex % BOARD_THEME_CYCLE.length]!;
     themeIndex++;
     board.push({ position: i, type: "question", theme, difficulty });
