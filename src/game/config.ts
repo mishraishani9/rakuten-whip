@@ -4,9 +4,10 @@
 export type Difficulty = "Easy" | "Medium" | "Hard";
 
 export type BoardPosition =
-  | { position: number; type: "start" | "club" | "bar" | "jail"; label: string }
+  | { position: number; type: "start" | "club" | "bar" | "jail" | "finish"; label: string }
   | { position: number; type: "question"; theme: BoardTheme; difficulty: Difficulty }
   | { position: number; type: "bonus"; bonusMove: number }
+  | { position: number; type: "penalty"; penaltyMove: number }
   | { position: number; type: "event" };
 
 export const GAME_SETTINGS = {
