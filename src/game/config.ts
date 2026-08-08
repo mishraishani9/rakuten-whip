@@ -10,17 +10,30 @@ export type BoardPosition =
   | { position: number; type: "event" };
 
 export const GAME_SETTINGS = {
-  QUESTION_TIME_SECONDS: 15,
+  QUESTION_TIME_SECONDS: 30,
   MAX_PLAYERS: 10,
   MIN_PLAYERS: 2,
+  DEFAULT_PLAYERS: 4,
   MAX_ROLLBACKS: 5,
   MAX_BONUS_CHAIN: 1,
   BOARD_SIZE: 24,
+  DEFAULT_BOARD_SIZE: 24,
   JAIL_RELEASE_ROLLS: [1, 6],
   CLUB_MISS_TURNS: 1,
   BAR_MISS_TURNS: 2,
   REVEAL_DELAY_MS: 900,
 } as const;
+
+/** Valid board sizes: 4 corners + equal number of houses per side. */
+export const BOARD_SIZE_OPTIONS = [16, 20, 24, 28, 32, 36, 40, 44, 48];
+
+export function housesPerSide(boardSize: number) {
+  return (boardSize - 4) / 4;
+}
+
+export function isValidBoardSize(size: number) {
+  return Number.isInteger(size) && size >= 16 && size <= 48 && (size - 4) % 4 === 0;
+}
 
 export const BOARD_THEMES = [
   "Patent",
