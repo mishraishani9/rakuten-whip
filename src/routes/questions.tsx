@@ -7,6 +7,7 @@ import { DIFFICULTIES } from "@/game/config";
 import type { Question } from "@/game/types";
 import { useAuth } from "@/hooks/useAuth";
 import {
+import { StaffGate } from "@/components/StaffGate";
   deleteQuestion,
   loadQuestionBank,
   statsFor,
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/questions")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: AuditPage,
+  component: GuardedAuditPage,
 });
 
 const LETTERS = ["A", "B", "C", "D"] as const;
@@ -230,5 +231,13 @@ function AuditPage() {
       </ul>
       {filtered.length === 0 && <p className="mt-6 text-sm text-muted-foreground">No questions match the filters.</p>}
     </main>
+  );
+}
+
+function GuardedAuditPage() {
+  return (
+    <StaffGate>
+      <AuditPage />
+    </StaffGate>
   );
 }

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { buildLeaderboard, summarise } from "@/services/analyticsService";
 import { listGames, listPlayers } from "@/services/gameService";
+import { StaffGate } from "@/components/StaffGate";
 
 const TITLE = "Session History & Analytics — Business of IP";
 const DESCRIPTION =
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/history")({
       { property: "og:description", content: DESCRIPTION },
     ],
   }),
-  component: HistoryPage,
+  component: GuardedHistoryPage,
 });
 
 function HistoryPage() {
@@ -133,5 +134,12 @@ function HistoryPage() {
         </>
       )}
     </main>
+  );
+}
+function GuardedHistoryPage() {
+  return (
+    <StaffGate>
+      <HistoryPage />
+    </StaffGate>
   );
 }

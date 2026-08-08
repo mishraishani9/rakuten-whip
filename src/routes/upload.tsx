@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { csvTemplate, downloadCsv, validateCsv, type ParseResult } from "@/services/csvService";
 import {
+import { StaffGate } from "@/components/StaffGate";
   insertQuestions,
   loadQuestionBank,
   replaceQuestionBank,
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/upload")({
       { property: "og:description", content: DESCRIPTION },
     ],
   }),
-  component: QuestionsPage,
+  component: GuardedQuestionsPage,
 });
 
 function QuestionsPage() {
@@ -180,5 +181,12 @@ function QuestionsPage() {
         </div>
       )}
     </main>
+  );
+}
+function GuardedQuestionsPage() {
+  return (
+    <StaffGate>
+      <QuestionsPage />
+    </StaffGate>
   );
 }
