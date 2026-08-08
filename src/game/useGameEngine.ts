@@ -489,11 +489,13 @@ export function useGameEngine() {
         return;
       }
 
+      const size = current.board?.length ?? GAME_SETTINGS.DEFAULT_BOARD_SIZE;
+      const finishAt = size - 1;
       let landed = player.position + dice;
       let won = false;
-      if (landed >= GAME_SETTINGS.BOARD_SIZE) {
+      if (landed >= finishAt) {
         won = true;
-        landed = 0;
+        landed = finishAt;
       }
 
       update((prev) => ({
@@ -501,6 +503,7 @@ export function useGameEngine() {
         lastDice: dice,
         phase: "MOVING",
         notice: null,
+        prevPosition: player.position,
         players: prev.players.map((p) =>
           p.id === player.id
             ? {
