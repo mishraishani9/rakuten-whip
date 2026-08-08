@@ -1,17 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { GameBoard } from "@/components/game/GameBoard";
-import { QuestionCard } from "@/components/game/QuestionCard";
-import { PresenterPanel } from "@/components/game/PresenterPanel";
-import { SetupScreen } from "@/components/game/SetupScreen";
 import { Button } from "@/components/ui/button";
-import { loadStoredState, useGameEngine } from "@/game/useGameEngine";
+import { useAuth, signInWithGoogle, signOutEverywhere } from "@/hooks/useAuth";
+import { loadStoredState } from "@/game/useGameEngine";
 import { cn } from "@/lib/utils";
 
-const TITLE = "Business of IP — Presenter-Led IP Board Game";
+const TITLE = "WHIP — World & Highlights in Intellectual Property Quiz Game";
 const DESCRIPTION =
-  "Run intellectual-property awareness workshops with a presenter-controlled board game: physical dice, timed IP questions, live scoring and session analytics.";
+  "WHIP is a presenter-led quiz-show board game for intellectual-property awareness workshops: dynamic boards, timed rounds, live scoreboards and session analytics.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,181 +17,138 @@ export const Route = createFileRoute("/")({
       { name: "description", content: DESCRIPTION },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: Index,
+  component: Home,
 });
 
-const TONE_CLASS: Record<string, string> = {
-  info: "border-border bg-secondary",
-  success: "border-success/50 bg-success/10",
-  danger: "border-destructive/50 bg-destructive/10",
-  warning: "border-gold/60 bg-gold/10",
-};
+function MenuButton({
+  to,
+  label,
+  hint,
+  onClick,
+  disabled,
+}: {
+  to?: string;
+  label: string;
+  hint?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+}) {
+  const inner = (
+    <span className="flex flex-col items-center">
+      <span className="font-display text-lg font-black uppercase tracking-[0.18em]">{label}</span>
+      {hint && <span className="text-[0.65rem] uppercase tracking-widest text-primary-foreground/70">{hint}</span>}
+    </span>
+  );
+  const classes = cn(
+    "lozenge flex w-full max-w-md items-center justify-center px-10 py-4 text-center",
+    disabled ? "opacity-40" : "hover:scale-[1.03] hover:brightness-125",
+  );
+  if (to && !disabled) {
+    return (
+      <Link to={to} className={classes}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" className={classes} onClick={onClick} disabled={disabled}>
+      {inner}
+    </button>
+  );
+}
 
-function Index() {
-  const engine = useGameEngine();
-  const { state } = engine;
+function Home() {
+  const auth = useAuth();
+  const [splash, setSplash] = useState(true);
   const [hasStored, setHasStored] = useState(false);
 
   useEffect(() => {
     setHasStored(loadStoredState() !== null);
+    const id = window.setTimeout(() => setSplash(false), 2300);
+    return () => window.clearTimeout(id);
   }, []);
 
-  if (!state) {
+  if (splash) {
     return (
-      <div className="min-h-screen bg-background">
-        <SetupScreen
-          bankSize={engine.bank.length}
-          bankError={engine.bankError}
-          hasStoredGame={hasStored}
-          onResume={() => engine.resumeStored()}
-          onStart={(name, players) => void engine.startGame(name, players)}
-        />
-      </div>
+      <main
+        className="stage-backdrop relative flex min-h-screen flex-col items-center justify-center overflow-hidden"
+        onClick={() => setSplash(false)}
+      >
+        <span className="smoke-veil pointer-events-none absolute inset-0" aria-hidden="true" />
+        <div className="relative flex h-72 w-72 items-center justify-center rounded-full border-4 border-gold/70 bg-primary/20 shadow-gold-glow animate-glow-pulse">
+          <div className="absolute inset-4 rounded-full border border-accent/60" />
+          <div className="text-center">
+            <p className="text-gradient-gold font-display text-6xl font-black tracking-[0.1em]">WHIP</p>
+            <p className="mt-1 text-[0.6rem] uppercase tracking-[0.3em] text-muted-foreground">
+              © ® ™ Quiz Show
+            </p>
+          </div>
+        </div>
+        <h1 className="relative mt-8 max-w-xl text-center font-display text-xl font-black uppercase tracking-[0.2em] text-foreground">
+          World &amp; Highlights in Intellectual Property
+        </h1>
+        <p className="relative mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">Tap to continue</p>
+      </main>
     );
   }
 
-  const activePosition = engine.currentPlayer?.position ?? null;
-  const isFinished = state.phase === "WINNER" || state.phase === "GAME_COMPLETE";
-  const ranked = [...state.players].sort(
-    (a, b) => b.laps - a.laps || b.correct - a.correct || b.position - a.position,
-  );
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-2 px-4 py-3">
-          <h1 className="font-display text-lg font-black uppercase tracking-widest text-foreground">
-            Business of IP
-          </h1>
-          <nav className="flex gap-4 text-sm">
-            <Link to="/history" className="text-muted-foreground underline hover:text-foreground">
-              History
-            </Link>
-            <Link to="/questions" className="text-muted-foreground underline hover:text-foreground">
-              Question bank
-            </Link>
-          </nav>
-        </div>
-      </header>
+    <main className="stage-backdrop relative flex min-h-screen flex-col items-center overflow-hidden px-4 py-10">
+      <span className="smoke-veil pointer-events-none absolute -top-40 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2" aria-hidden="true" />
 
-      <main className="mx-auto grid max-w-[1500px] gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="flex flex-col gap-4">
-          <GameBoard
-            players={state.players}
-            currentPlayerId={state.currentPlayerId}
-            activePosition={activePosition}
-          />
+      <div className="relative flex w-full max-w-md items-center justify-between text-xs">
+        <span className="uppercase tracking-[0.25em] text-muted-foreground">
+          {auth.loading ? "…" : auth.user ? `${auth.displayName} · ${auth.roles.join(", ")}` : "Guest · player"}
+        </span>
+        {auth.user ? (
+          <button
+            type="button"
+            className="uppercase tracking-[0.2em] text-gold underline"
+            onClick={() => void signOutEverywhere()}
+          >
+            Sign out
+          </button>
+        ) : (
+          <Link to="/auth" className="uppercase tracking-[0.2em] text-gold underline">
+            Sign in
+          </Link>
+        )}
+      </div>
 
-          {state.saveError && (
-            <p className="rounded-lg border border-gold/60 bg-gold/10 p-3 text-sm text-foreground">
-              {state.saveError}
-            </p>
-          )}
+      <div className="relative mt-6 text-center">
+        <p className="text-gradient-gold font-display text-5xl font-black tracking-[0.12em]">WHIP</p>
+        <p className="mt-1 text-[0.62rem] uppercase tracking-[0.28em] text-muted-foreground">
+          World &amp; Highlights in Intellectual Property
+        </p>
+      </div>
 
-          {state.notice && (
-            <div className={cn("rounded-xl border p-4", TONE_CLASS[state.notice.tone])}>
-              <p className="font-display text-base font-black uppercase tracking-wide text-foreground">
-                {state.notice.title}
-              </p>
-              {state.notice.body && (
-                <p className="mt-1 text-sm text-muted-foreground">{state.notice.body}</p>
-              )}
-              {(state.phase === "SPECIAL_EVENT" || state.phase === "NO_QUESTION") && (
-                <Button size="sm" className="mt-3" onClick={engine.continuePlay}>
-                  Continue to next player
-                </Button>
-              )}
-            </div>
-          )}
+      <nav className="relative mt-9 flex w-full flex-col items-center gap-3.5">
+        <MenuButton to="/play" label="New Game" hint="Configure board &amp; players" />
+        <MenuButton to="/play" label="Load Game" hint={hasStored ? "Resume saved session" : "No saved session"} disabled={!hasStored} />
+        <MenuButton to="/history" label="Analytics" hint="Cross-session insights" />
+        <MenuButton to="/history" label="Games History" hint="Every past session" />
+        {auth.isStaff && <MenuButton to="/questions" label="Audit Questions" hint="Review &amp; correct the bank" />}
+        {auth.isStaff && <MenuButton to="/upload" label="Bulk Upload" hint="Import questions from CSV" />}
+        {auth.isAdmin && <MenuButton to="/admin" label="Roles &amp; Invites" hint="Approve presenters" />}
+        {!auth.user && (
+          <MenuButton label="Continue with Google" hint="Sign in for roles" onClick={() => void signInWithGoogle()} />
+        )}
+      </nav>
 
-          {state.phase === "PAUSED" && (
-            <div className="rounded-xl border border-border bg-secondary p-4">
-              <p className="font-display text-base font-black uppercase text-foreground">Game paused</p>
-              <Button size="sm" className="mt-3" onClick={engine.resume}>
-                Resume game
-              </Button>
-            </div>
-          )}
+      <p className="relative mt-10 max-w-lg text-center text-xs text-muted-foreground">
+        Everyone signs in as a player by default. Presenters and admins unlock question auditing, bulk
+        upload and in-game player management.
+      </p>
 
-          {state.currentQuestion && !isFinished && (
-            <QuestionCard
-              question={state.currentQuestion}
-              phase={state.phase}
-              timeRemaining={state.timeRemaining}
-              selectedOption={state.selectedOption}
-              wasTimeout={state.wasTimeout}
-              playerName={engine.currentPlayer?.name ?? ""}
-              playerColor={engine.currentPlayer?.color ?? "#000"}
-              onSelect={engine.selectAnswer}
-              onTick={engine.tick}
-              onTimeout={engine.timeout}
-              onContinue={engine.continueAfterReveal}
-              onDifferentQuestion={engine.differentQuestion}
-              onSkip={engine.skipQuestion}
-            />
-          )}
-
-          {isFinished && (
-            <div className="rounded-xl border border-gold/60 bg-gold/10 p-5">
-              <p className="font-display text-2xl font-black uppercase tracking-wide text-foreground">
-                {state.phase === "WINNER" ? "We have a winner!" : "Game complete"}
-              </p>
-              <ol className="mt-3 space-y-1 text-sm">
-                {ranked.map((p, i) => (
-                  <li key={p.id} className="flex items-center gap-2 text-foreground">
-                    <span className="w-5 font-display font-black text-muted-foreground">{i + 1}</span>
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: p.color }} />
-                    <span className="flex-1 truncate">{p.name}</span>
-                    <span className="tabular-nums text-muted-foreground">
-                      {p.correct}✓ · {p.incorrect}✗ · {p.timeouts} timeouts · lap {p.laps}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {state.phase === "WINNER" && (
-                  <>
-                    <Button onClick={() => void engine.endGame()}>End game &amp; save results</Button>
-                    <Button variant="secondary" onClick={engine.continuePlay}>
-                      Keep playing
-                    </Button>
-                  </>
-                )}
-                {state.phase === "GAME_COMPLETE" && (
-                  <>
-                    <Button onClick={engine.discard}>New game</Button>
-                    <Button variant="secondary" asChild>
-                      <Link to="/history">View analytics</Link>
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <PresenterPanel
-          state={state}
-          currentPlayer={engine.currentPlayer}
-          undoCount={engine.undoCount}
-          questionsRemaining={engine.questionsRemaining}
-          bankReady={engine.bank.length > 0}
-          onDice={engine.move}
-          onSelectPlayer={engine.selectPlayer}
-          onManualMove={engine.manualMove}
-          onRenamePlayer={engine.renamePlayer}
-          onRenameGame={engine.renameGame}
-          onUndo={() => engine.undo()}
-          onEndTurn={engine.endTurn}
-          onPause={engine.pause}
-          onResume={engine.resume}
-          onEndGame={() => void engine.endGame()}
-          onResetUsed={engine.resetUsedQuestions}
-          onDiscard={engine.discard}
-        />
-      </main>
-    </div>
+      {!auth.user && (
+        <Button variant="ghost" className="relative mt-4 text-xs uppercase tracking-widest" asChild>
+          <Link to="/auth">Email sign-in / register</Link>
+        </Button>
+      )}
+    </main>
   );
 }
