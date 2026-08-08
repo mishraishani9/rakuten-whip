@@ -60,7 +60,7 @@ export function SetupScreen({
       );
   }, []);
 
-  const addPlayer = (name?: string) => {
+  const addPlayer = (entry?: DirectoryEntry) => {
     setPlayers((prev) => {
       if (prev.length >= GAME_SETTINGS.MAX_PLAYERS) return prev;
       const index = prev.length;
@@ -68,8 +68,11 @@ export function SetupScreen({
         ...prev,
         {
           number: index + 1,
-          name: name ?? `Player ${index + 1}`,
+          name: entry?.name ?? `Player ${index + 1}`,
           color: PAWN_COLORS[index % PAWN_COLORS.length]!,
+          email: entry?.email ?? null,
+          userId: entry?.id ?? null,
+          isOnline: Boolean(entry?.email),
         },
       ]);
     });
@@ -143,7 +146,7 @@ export function SetupScreen({
 
         <ul className="mt-3 space-y-2">
           {players.map((p, index) => (
-            <li key={index} className="flex items-center gap-3">
+            <li key={index} className="flex flex-wrap items-center gap-3">
               <input
                 type="color"
                 aria-label={`Colour for player ${p.number}`}
@@ -153,13 +156,27 @@ export function SetupScreen({
                 }
                 className="h-9 w-9 cursor-pointer rounded-md border border-border bg-background"
               />
-              <Input
-                aria-label={`Name for player ${p.number}`}
-                value={p.name}
-                onChange={(e) =>
-                  setPlayers((prev) => prev.map((x, i) => (i === index ? { ...x, name: e.target.value } : x)))
-                }
-              />
+              <div className="min-w-[10rem] flex-1">
+                <Input
+                  aria-label={`Name for player ${p.number}`}
+                  value={p.name}
+                  onChange={(e) =>
+                    setPlayers((prev) => prev.map((x, i) => (i === index ? { ...x, name: e.target.value } : x)))
+                  }
+                />
+                {p.email && <p className="mt-0.5 truncate text-[0.62rem] text-muted-foreground">{p.email}</p>}
+              </div>
+              <label className="flex shrink-0 items-center gap-2 text-[0.66rem] uppercase tracking-widest text-muted-foreground">
+                {p.isOnline ? "Online" : "Offline"}
+                <Switch
+                  checked={Boolean(p.isOnline)}
+                  disabled={!p.email}
+                  aria-label={`${p.name} plays online`}
+                  onCheckedChange={(checked) =>
+                    setPlayers((prev) => prev.map((x, i) => (i === index ? { ...x, isOnline: checked } : x)))
+                  }
+                />
+              </label>
               <Button
                 size="sm"
                 variant="ghost"
@@ -178,12 +195,16 @@ export function SetupScreen({
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Add from registered users
             </p>
+            <p className="mt-1 text-[0.66rem] text-muted-foreground">
+              Registered players can be switched to online play and get their own device view. Custom players
+              stay offline.
+            </p>
             <div className="mt-2 flex flex-wrap gap-2">
               {directory.map((entry) => (
                 <button
                   key={entry.id}
                   type="button"
-                  onClick={() => addPlayer(entry.name)}
+                  onClick={() => addPlayer(entry)}
                   disabled={players.length >= GAME_SETTINGS.MAX_PLAYERS}
                   className={cn(
                     "rounded-full border border-border px-3 py-1 text-xs text-foreground transition-colors hover:border-gold",
