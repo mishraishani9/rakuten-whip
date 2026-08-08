@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as PlayRouteImport } from './routes/play'
 import { Route as UploadRouteImport } from './routes/upload'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayRoute = PlayRouteImport.update({
+  id: '/play',
+  path: '/play',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
+  '/play': typeof PlayRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
+  '/play': typeof PlayRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,22 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
+  '/play': typeof PlayRoute
   '/upload': typeof UploadRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/history' | '/upload'
+  fullPaths: '/' | '/auth' | '/history' | '/play' | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/history' | '/upload'
-  id: '__root__' | '/' | '/auth' | '/history' | '/upload'
+  to: '/' | '/auth' | '/history' | '/play' | '/upload'
+  id: '__root__' | '/' | '/auth' | '/history' | '/play' | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   HistoryRoute: typeof HistoryRoute
+  PlayRoute: typeof PlayRoute
   UploadRoute: typeof UploadRoute
 }
 
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/play': {
+      id: '/play'
+      path: '/play'
+      fullPath: '/play'
+      preLoaderRoute: typeof PlayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upload': {
       id: '/upload'
       path: '/upload'
@@ -106,6 +123,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   HistoryRoute: HistoryRoute,
+  PlayRoute: PlayRoute,
   UploadRoute: UploadRoute,
 }
 export const routeTree = rootRouteImport
