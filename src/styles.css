@@ -27,22 +27,15 @@
   --color-square-tradesecrets: var(--square-tradesecrets);
   --color-square-seps: var(--square-seps);
   --color-square-copyright: var(--square-copyright);
-  --shadow-board: 0 30px 60px -25px color-mix(in oklab, var(--primary) 55%, transparent);
-  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--gold) 60%, transparent), 0 12px 30px -12px color-mix(in oklab, var(--gold) 65%, transparent);
+  --shadow-board: 0 40px 90px -30px color-mix(in oklab, var(--primary) 75%, transparent);
+  --shadow-glow: 0 0 0 1px color-mix(in oklab, var(--primary) 70%, transparent), 0 0 30px -4px color-mix(in oklab, var(--primary) 80%, transparent);
+  --shadow-gold-glow: 0 0 0 1px color-mix(in oklab, var(--gold) 70%, transparent), 0 0 34px -6px color-mix(in oklab, var(--gold) 85%, transparent);
 }
 
 /*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * WHIP design system — quiz-show stage aesthetic:
+ * deep violet stage, electric-blue lozenges, gold accents.
+ * All colors use oklch and are exposed as semantic tokens only.
  */
 
 @theme inline {
@@ -88,124 +81,77 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(0.981 0.008 250);
-  --foreground: oklch(0.19 0.05 265);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.19 0.05 265);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.05 265);
-  --primary: oklch(0.42 0.17 264);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.945 0.02 250);
-  --secondary-foreground: oklch(0.28 0.07 265);
-  --muted: oklch(0.955 0.012 250);
-  --muted-foreground: oklch(0.52 0.04 258);
-  --accent: oklch(0.93 0.06 255);
-  --accent-foreground: oklch(0.26 0.08 265);
-  --gold: oklch(0.8 0.14 84);
-  --gold-foreground: oklch(0.24 0.06 265);
-  --success: oklch(0.62 0.17 150);
-  --success-foreground: oklch(0.99 0.005 250);
-  --warning: oklch(0.72 0.17 55);
-  --warning-foreground: oklch(0.2 0.05 60);
-  --board: oklch(0.3 0.12 264);
-  --board-foreground: oklch(0.98 0.01 250);
-  --easy: oklch(0.66 0.15 155);
-  --medium: oklch(0.74 0.15 65);
-  --hard: oklch(0.6 0.2 20);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.9 0.018 255);
-  --input: oklch(0.9 0.018 255);
-  --ring: oklch(0.55 0.14 264);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-}
-
+:root,
 .dark {
-  --background: oklch(0.16 0.04 265);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.22 0.05 265);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.22 0.05 265);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.66 0.16 264);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --gold: oklch(0.82 0.14 84);
-  --gold-foreground: oklch(0.2 0.05 265);
-  --success: oklch(0.68 0.17 150);
-  --success-foreground: oklch(0.15 0.04 150);
-  --warning: oklch(0.76 0.17 55);
-  --warning-foreground: oklch(0.18 0.05 60);
-  --board: oklch(0.26 0.1 264);
-  --board-foreground: oklch(0.98 0.01 250);
-  --easy: oklch(0.7 0.15 155);
-  --medium: oklch(0.78 0.15 65);
-  --hard: oklch(0.65 0.2 20);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --radius: 0.75rem;
+  --background: oklch(0.15 0.09 300);
+  --foreground: oklch(0.97 0.015 280);
+  --card: oklch(0.21 0.1 296);
+  --card-foreground: oklch(0.97 0.015 280);
+  --popover: oklch(0.19 0.1 298);
+  --popover-foreground: oklch(0.97 0.015 280);
+  --primary: oklch(0.66 0.19 245);
+  --primary-foreground: oklch(0.14 0.06 280);
+  --secondary: oklch(0.26 0.11 292);
+  --secondary-foreground: oklch(0.96 0.02 280);
+  --muted: oklch(0.25 0.09 294);
+  --muted-foreground: oklch(0.78 0.05 285);
+  --accent: oklch(0.72 0.17 235);
+  --accent-foreground: oklch(0.14 0.06 280);
+  --gold: oklch(0.84 0.15 88);
+  --gold-foreground: oklch(0.18 0.07 290);
+  --success: oklch(0.7 0.18 150);
+  --success-foreground: oklch(0.15 0.05 150);
+  --warning: oklch(0.8 0.16 70);
+  --warning-foreground: oklch(0.18 0.06 60);
+  --board: oklch(0.24 0.12 293);
+  --board-foreground: oklch(0.97 0.015 280);
+  --easy: oklch(0.72 0.16 155);
+  --medium: oklch(0.8 0.15 75);
+  --hard: oklch(0.66 0.2 20);
+  --destructive: oklch(0.62 0.23 20);
+  --destructive-foreground: oklch(0.98 0.01 280);
+  --border: oklch(0.72 0.16 250 / 30%);
+  --input: oklch(0.72 0.16 250 / 26%);
+  --ring: oklch(0.7 0.18 245);
+  --chart-1: oklch(0.66 0.19 245);
+  --chart-2: oklch(0.84 0.15 88);
+  --chart-3: oklch(0.7 0.18 150);
+  --chart-4: oklch(0.66 0.2 20);
+  --chart-5: oklch(0.68 0.19 320);
+  --sidebar: oklch(0.19 0.1 298);
+  --sidebar-foreground: oklch(0.97 0.015 280);
+  --sidebar-primary: oklch(0.66 0.19 245);
+  --sidebar-primary-foreground: oklch(0.14 0.06 280);
+  --sidebar-accent: oklch(0.26 0.11 292);
+  --sidebar-accent-foreground: oklch(0.97 0.015 280);
+  --sidebar-border: oklch(0.72 0.16 250 / 30%);
+  --sidebar-ring: oklch(0.7 0.18 245);
+  --square-patent: oklch(0.66 0.19 250);
+  --square-trademark: oklch(0.72 0.17 155);
+  --square-fundamentals: oklch(0.82 0.15 85);
+  --square-priorart: oklch(0.66 0.2 305);
+  --square-inventorship: oklch(0.74 0.16 200);
+  --square-patentability: oklch(0.67 0.2 25);
+  --square-tradesecrets: oklch(0.62 0.17 275);
+  --square-seps: oklch(0.74 0.17 125);
+  --square-copyright: oklch(0.68 0.2 340);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-}
-
-:root,
-.dark {
-  --square-patent: oklch(0.62 0.19 255);
-  --square-trademark: oklch(0.66 0.18 150);
-  --square-fundamentals: oklch(0.72 0.16 85);
-  --square-priorart: oklch(0.6 0.19 300);
-  --square-inventorship: oklch(0.66 0.17 200);
-  --square-patentability: oklch(0.63 0.2 25);
-  --square-tradesecrets: oklch(0.55 0.14 275);
-  --square-seps: oklch(0.68 0.16 120);
-  --square-copyright: oklch(0.64 0.19 340);
-}
-
-@layer base {
 
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    background-image:
+      radial-gradient(circle at 50% -10%, color-mix(in oklab, var(--primary) 32%, transparent), transparent 55%),
+      radial-gradient(circle at 12% 12%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 45%),
+      radial-gradient(circle at 88% 85%, color-mix(in oklab, var(--gold) 12%, transparent), transparent 45%);
+    background-attachment: fixed;
   }
 
   h1,
@@ -213,49 +159,122 @@
   h3,
   h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
   }
+}
+
+/* Stage backdrop with drifting smoke haze, as on the title card. */
+@utility stage-backdrop {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 30%, color-mix(in oklab, var(--primary) 40%, transparent), transparent 60%),
+    radial-gradient(ellipse at 50% 100%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 65%),
+    linear-gradient(180deg, oklch(0.13 0.08 300), oklch(0.17 0.1 296));
+}
+
+@utility smoke-veil {
+  background: radial-gradient(circle at 50% 60%, color-mix(in oklab, var(--accent) 45%, transparent), transparent 62%);
+  filter: blur(28px);
+  animation: smoke-drift 9s ease-in-out infinite alternate;
+}
+
+/* Hexagon-ended lozenge used for menu buttons, questions and options. */
+@utility lozenge {
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 82%, black), color-mix(in oklab, var(--primary) 45%, black));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 35%, transparent),
+    inset 0 -8px 22px -10px color-mix(in oklab, black 80%, transparent),
+    0 0 26px -6px color-mix(in oklab, var(--primary) 85%, transparent);
+  color: var(--color-foreground);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+@utility lozenge-shell {
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--primary) 24%, transparent), color-mix(in oklab, var(--primary) 8%, transparent));
+  box-shadow:
+    inset 0 0 0 2px color-mix(in oklab, var(--accent) 55%, transparent),
+    0 0 30px -10px color-mix(in oklab, var(--primary) 80%, transparent);
+}
+
+@utility lozenge-gold {
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--gold) 88%, white), color-mix(in oklab, var(--gold) 55%, black));
+  color: var(--gold-foreground);
+  box-shadow: 0 0 30px -6px color-mix(in oklab, var(--gold) 85%, transparent);
 }
 
 @utility board-surface {
   background:
-    radial-gradient(circle at 30% 20%, color-mix(in oklab, var(--primary) 35%, transparent), transparent 60%),
-    linear-gradient(150deg, var(--board), color-mix(in oklab, var(--board) 70%, black));
+    radial-gradient(circle at 50% 40%, color-mix(in oklab, var(--primary) 32%, transparent), transparent 62%),
+    linear-gradient(160deg, color-mix(in oklab, var(--board) 92%, white 4%), color-mix(in oklab, var(--board) 60%, black));
+}
+
+/* Isometric board tilt so pawns stand out above the tiles. */
+@utility board-isometric {
+  transform: perspective(1500px) rotateX(46deg) rotateZ(-45deg) scale(0.9);
+  transform-style: preserve-3d;
+}
+
+@utility tile-3d {
+  box-shadow:
+    0 6px 0 -1px color-mix(in oklab, black 60%, transparent),
+    0 10px 22px -12px color-mix(in oklab, black 85%, transparent);
+}
+
+@utility pawn-3d {
+  transform: translateZ(38px) rotateZ(45deg) rotateX(-46deg);
+  transform-style: preserve-3d;
+}
+
+/* Light, transparent IP-themed graffiti wash for the board centre. */
+@utility ip-graffiti {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='2' opacity='0.55'%3E%3Ccircle cx='36' cy='38' r='18'/%3E%3Ctext x='28' y='45' font-family='monospace' font-size='22' fill='%23ffffff' stroke='none'%3E%C2%A9%3C/text%3E%3Ctext x='96' y='52' font-family='monospace' font-size='26' fill='%23ffffff' stroke='none'%3E%C2%AE%3C/text%3E%3Ctext x='158' y='48' font-family='monospace' font-size='20' fill='%23ffffff' stroke='none'%3ETM%3C/text%3E%3Cpath d='M40 108l16-26 16 26z'/%3E%3Cpath d='M104 96h30v34h-30z'/%3E%3Cpath d='M112 96v-8a8 8 0 0116 0v8'/%3E%3Ccircle cx='178' cy='112' r='16'/%3E%3Cpath d='M178 96v-10M178 128v10M162 112h-10M194 112h10'/%3E%3Cpath d='M32 172c14-16 30-16 44 0'/%3E%3Cpath d='M96 186v-30l24 14-24 16z'/%3E%3Ctext x='150' y='186' font-family='monospace' font-size='18' fill='%23ffffff' stroke='none'%3E%E2%9C%8E%3C/text%3E%3C/g%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  opacity: 0.09;
 }
 
 @utility text-gradient-gold {
-  background: linear-gradient(100deg, var(--gold), color-mix(in oklab, var(--gold) 55%, white));
+  background: linear-gradient(100deg, var(--gold), color-mix(in oklab, var(--gold) 45%, white));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
 @keyframes pawn-pop {
-  0% {
-    transform: scale(0.7);
-  }
-  60% {
-    transform: scale(1.15);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(0.7); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
 }
 
 @keyframes answer-blink {
-  0%,
-  100% {
-    filter: brightness(1);
-  }
-  50% {
-    filter: brightness(1.35);
-  }
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.45); }
 }
 
-@utility animate-answer-blink {
-  animation: answer-blink 0.45s ease-in-out 2;
+@keyframes smoke-drift {
+  0% { transform: translate3d(-4%, 2%, 0) scale(1); opacity: 0.55; }
+  100% { transform: translate3d(4%, -3%, 0) scale(1.12); opacity: 0.85; }
 }
 
-@utility animate-pawn-pop {
-  animation: pawn-pop 0.35s ease-out;
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 22px -8px color-mix(in oklab, var(--primary) 80%, transparent); }
+  50% { box-shadow: 0 0 40px -4px color-mix(in oklab, var(--accent) 95%, transparent); }
 }
+
+@keyframes tick-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes sheen {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+
+@utility animate-answer-blink { animation: answer-blink 0.45s ease-in-out 2; }
+@utility animate-pawn-pop { animation: pawn-pop 0.35s ease-out; }
+@utility animate-glow-pulse { animation: glow-pulse 2.4s ease-in-out infinite; }
+@utility animate-tick-pulse { animation: tick-pulse 1s steps(2, end) infinite; }
+@utility animate-sheen { animation: sheen 2.6s ease-in-out infinite; }
