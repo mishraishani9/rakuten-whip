@@ -52,10 +52,15 @@ export function pickQuestion(
   difficulty: Difficulty,
   usedIds: string[],
   excludeRecordId?: string,
+  goldenFirst = false,
 ): Question | null {
   let pool = poolFor(bank, theme, difficulty, usedIds);
   if (excludeRecordId && pool.length > 1) pool = pool.filter((q) => q.record_id !== excludeRecordId);
   if (pool.length === 0) return null;
+  if (goldenFirst) {
+    const golden = pool.filter((q) => q.record_type?.toLowerCase() === "golden");
+    if (golden.length > 0) return golden[Math.floor(Math.random() * golden.length)] ?? null;
+  }
   return pool[Math.floor(Math.random() * pool.length)] ?? null;
 }
 
