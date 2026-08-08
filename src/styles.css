@@ -211,6 +211,37 @@
     linear-gradient(160deg, color-mix(in oklab, var(--board) 92%, white 4%), color-mix(in oklab, var(--board) 60%, black));
 }
 
+/* Light board surface: pale table with saturated coloured squares on top. */
+@utility board-surface-light {
+  background:
+    radial-gradient(circle at 50% 35%, oklch(0.99 0.01 90), transparent 65%),
+    linear-gradient(160deg, oklch(0.96 0.02 250), oklch(0.9 0.03 265));
+  border: 1px solid oklch(0.75 0.05 265);
+}
+
+@utility tile-light {
+  box-shadow:
+    0 5px 0 -1px oklch(0.62 0.05 265 / 55%),
+    0 12px 20px -14px oklch(0.2 0.06 265 / 80%);
+}
+
+/* Glossy standing pawn token. */
+@utility pawn-token {
+  background-image:
+    radial-gradient(circle at 34% 24%, color-mix(in oklab, white 78%, transparent), transparent 58%);
+  box-shadow:
+    0 2px 0 color-mix(in oklab, black 40%, transparent),
+    0 10px 16px -8px color-mix(in oklab, black 85%, transparent);
+}
+
+@keyframes emoji-float {
+  0% { transform: translateY(0) scale(0.7); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateY(-90px) scale(1.4); opacity: 0; }
+}
+
+@utility animate-emoji-float { animation: emoji-float 2.2s ease-out forwards; }
+
 /* Isometric board tilt so pawns stand out above the tiles. */
 @utility board-isometric {
   transform: perspective(2200px) rotateX(17deg) scale(0.97);

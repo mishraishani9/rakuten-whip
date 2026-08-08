@@ -50,6 +50,29 @@ export const BOARD_THEMES = [
 
 export type BoardTheme = (typeof BOARD_THEMES)[number];
 
+/** Tailwind background utility + legend swatch token for each board theme. */
+export const THEME_TOKEN: Record<BoardTheme, string> = {
+  Patent: "--square-patent",
+  Trademark: "--square-trademark",
+  "IP Fundamentals": "--square-fundamentals",
+  "Prior Art": "--square-priorart",
+  Inventorship: "--square-inventorship",
+  Patentability: "--square-patentability",
+  "Trade Secrets": "--square-tradesecrets",
+  "SEPs & Standards": "--square-seps",
+  Copyright: "--square-copyright",
+};
+
+export const DIFFICULTY_TOKEN: Record<Difficulty, string> = {
+  Easy: "--easy",
+  Medium: "--medium",
+  Hard: "--hard",
+};
+
+export const DIFFICULTY_SHORT: Record<Difficulty, string> = { Easy: "E", Medium: "M", Hard: "H" };
+
+const DIFFICULTY_CYCLE: Difficulty[] = ["Easy", "Medium", "Hard"];
+
 /**
  * Board categories map to the raw `theme` values found in the CSV question bank.
  * Adding a new CSV theme only requires listing it under the right category.
@@ -165,6 +188,8 @@ export function buildBoard(size: number): BoardPosition[] {
 
   const board: BoardPosition[] = [];
   let themeIndex = 0;
+  // Each side carries an equal mix of Easy / Medium / Hard houses.
+  const sideDifficultyCount = new Map<number, number>();
   for (let i = 0; i < total; i++) {
     const corner = corners.get(i);
     if (corner) {
@@ -181,7 +206,9 @@ export function buildBoard(size: number): BoardPosition[] {
       continue;
     }
     const side = Math.floor(i / (perSide + 1));
-    const difficulty: Difficulty = side === 0 ? "Easy" : side === 3 ? "Hard" : "Medium";
+    const seen = sideDifficultyCount.get(side) ?? 0;
+    sideDifficultyCount.set(side, seen + 1);
+    const difficulty: Difficulty = DIFFICULTY_CYCLE[(seen + side) % DIFFICULTY_CYCLE.length]!;
     const theme = BOARD_THEME_CYCLE[themeIndex % BOARD_THEME_CYCLE.length]!;
     themeIndex++;
     board.push({ position: i, type: "question", theme, difficulty });

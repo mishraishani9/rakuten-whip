@@ -10,6 +10,7 @@ import {
   statsFor,
   type BankStats,
 } from "@/services/questionService";
+import { StaffGate } from "@/components/StaffGate";
 
 const TITLE = "Bulk Question Upload — WHIP";
 const DESCRIPTION =
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/upload")({
       { property: "og:description", content: DESCRIPTION },
     ],
   }),
-  component: QuestionsPage,
+  component: GuardedQuestionsPage,
 });
 
 function QuestionsPage() {
@@ -180,5 +181,12 @@ function QuestionsPage() {
         </div>
       )}
     </main>
+  );
+}
+function GuardedQuestionsPage() {
+  return (
+    <StaffGate>
+      <QuestionsPage />
+    </StaffGate>
   );
 }

@@ -71,6 +71,53 @@ export type Database = {
           },
         ]
       }
+      game_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          game_id: string | null
+          host_user_id: string
+          id: string
+          max_players: number
+          presenter_mode: boolean
+          snapshot: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          game_id?: string | null
+          host_user_id: string
+          id?: string
+          max_players?: number
+          presenter_mode?: boolean
+          snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          game_id?: string | null
+          host_user_id?: string
+          id?: string
+          max_players?: number
+          presenter_mode?: boolean
+          snapshot?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_rooms_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           created_at: string
@@ -327,6 +374,100 @@ export type Database = {
           theme?: string
         }
         Relationships: []
+      }
+      room_messages: {
+        Row: {
+          body: string
+          created_at: string
+          display_name: string
+          id: string
+          kind: string
+          room_id: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_name: string
+          id?: string
+          kind?: string
+          room_id: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_name?: string
+          id?: string
+          kind?: string
+          room_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_players: {
+        Row: {
+          color: string
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          is_online: boolean
+          pending_answer: string | null
+          pending_dice: number | null
+          player_number: number
+          room_id: string
+          slug: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          is_online?: boolean
+          pending_answer?: string | null
+          pending_dice?: number | null
+          player_number: number
+          room_id: string
+          slug: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          is_online?: boolean
+          pending_answer?: string | null
+          pending_dice?: number | null
+          player_number?: number
+          room_id?: string
+          slug?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "game_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

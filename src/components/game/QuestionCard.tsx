@@ -48,14 +48,6 @@ export function QuestionCard({
     return () => window.clearInterval(id);
   }, [isActive, onTick]);
 
-  // Looping suspense bed + loud clock tick while the question is live.
-  useEffect(() => {
-    if (!soundOn) return;
-    if (isActive) gameAudio.startMusic();
-    else gameAudio.stopMusic();
-    return () => gameAudio.stopMusic();
-  }, [isActive, soundOn]);
-
   useEffect(() => {
     if (isActive && soundOn && timeRemaining > 0) gameAudio.tick(timeRemaining);
   }, [isActive, soundOn, timeRemaining]);
