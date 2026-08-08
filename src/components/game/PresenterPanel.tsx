@@ -13,6 +13,7 @@ export function PresenterPanel({
   currentPlayer,
   undoCount,
   questionsRemaining,
+  bankReady,
   onDice,
   onSelectPlayer,
   onManualMove,
@@ -30,6 +31,7 @@ export function PresenterPanel({
   currentPlayer: PlayerState | null;
   undoCount: number;
   questionsRemaining: number;
+  bankReady: boolean;
   onDice: (value: number) => void;
   onSelectPlayer: (id: string) => void;
   onManualMove: (id: string, position: number) => void;
@@ -49,7 +51,8 @@ export function PresenterPanel({
   const [showAdmin, setShowAdmin] = useState(false);
 
   const diceDisabled =
-    state.phase !== "PLAYER_TURN" && state.phase !== "READY" && state.phase !== "SPECIAL_EVENT";
+    !bankReady ||
+    (state.phase !== "PLAYER_TURN" && state.phase !== "READY" && state.phase !== "SPECIAL_EVENT");
   const paused = state.phase === "PAUSED";
 
   return (
@@ -84,7 +87,7 @@ export function PresenterPanel({
         )}
 
         <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Enter physical dice value
+          {bankReady ? "Enter physical dice value" : "Loading question bank…"}
         </p>
         <div className="mt-2 grid grid-cols-6 gap-1.5">
           {DICE.map((value) => (

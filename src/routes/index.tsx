@@ -180,6 +180,7 @@ function Index() {
           currentPlayer={engine.currentPlayer}
           undoCount={engine.undoCount}
           questionsRemaining={engine.questionsRemaining}
+          bankReady={engine.bank.length > 0}
           onDice={engine.move}
           onSelectPlayer={engine.selectPlayer}
           onManualMove={engine.manualMove}
