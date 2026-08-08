@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { csvTemplate, downloadCsv, validateCsv, type ParseResult } from "@/services/csvService";
 import {
-import { StaffGate } from "@/components/StaffGate";
   insertQuestions,
   loadQuestionBank,
   replaceQuestionBank,
   statsFor,
   type BankStats,
 } from "@/services/questionService";
+import { StaffGate } from "@/components/StaffGate";
 
 const TITLE = "Bulk Question Upload — WHIP";
 const DESCRIPTION =

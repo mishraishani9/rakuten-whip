@@ -7,12 +7,12 @@ import { DIFFICULTIES } from "@/game/config";
 import type { Question } from "@/game/types";
 import { useAuth } from "@/hooks/useAuth";
 import {
-import { StaffGate } from "@/components/StaffGate";
   deleteQuestion,
   loadQuestionBank,
   statsFor,
   updateQuestion,
 } from "@/services/questionService";
+import { StaffGate } from "@/components/StaffGate";
 
 const TITLE = "Audit the IP Question Bank — WHIP";
 const DESCRIPTION =
