@@ -115,8 +115,8 @@ function AuditPage() {
         Audit questions
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {stats.total} questions · {stats.byDifficulty.Easy ?? 0} easy · {stats.byDifficulty.Medium ?? 0} medium ·{" "}
-        {stats.byDifficulty.Hard ?? 0} hard
+        {stats.total} questions · {stats.byDifficulty['Easy'] ?? 0} easy · {stats.byDifficulty['Medium'] ?? 0} medium ·{" "}
+        {stats.byDifficulty['Hard'] ?? 0} hard
       </p>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
