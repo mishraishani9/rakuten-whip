@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BOARD_POSITIONS,
-  CORNER_POSITION,
+  buildBoard,
+  cornerPositions,
   EVENT_RULES,
   GAME_SETTINGS,
   squareAt,
+  type BoardPosition,
   type BoardTheme,
   type Difficulty,
 } from "./config";
@@ -13,6 +15,7 @@ import { loadQuestionBank, pickQuestion, poolFor } from "@/services/questionServ
 import * as gameService from "@/services/gameService";
 
 export type SetupPlayer = { number: number; name: string; color: string };
+export type StartOptions = { boardSize?: number; goldenFirst?: boolean };
 
 const SESSION_KEY = "ipquiz.activeGame";
 
@@ -38,17 +41,23 @@ function makePlayer(p: SetupPlayer): PlayerState {
   };
 }
 
-export function initialState(gameName: string, setup: SetupPlayer[]): GameState {
+export function initialState(gameName: string, setup: SetupPlayer[], options: StartOptions = {}): GameState {
   const players = setup.map(makePlayer);
+  const boardSize = options.boardSize ?? GAME_SETTINGS.DEFAULT_BOARD_SIZE;
+  const board = buildBoard(boardSize);
   return {
     gameId: null,
     gameName,
     phase: "READY",
     phaseBeforePause: null,
+    board,
+    boardSize: board.length,
+    goldenFirst: options.goldenFirst ?? false,
     players,
     currentPlayerId: players[0]?.id ?? "p1",
     turnNumber: 1,
     lastDice: null,
+    prevPosition: null,
     usedQuestionIds: [],
     currentQuestion: null,
     currentSquareTheme: null,
@@ -141,8 +150,8 @@ export function useGameEngine() {
 
   /** Begin a game: creates the backend records but never blocks gameplay. */
   const startGame = useCallback(
-    async (gameName: string, setup: SetupPlayer[]) => {
-      const fresh = initialState(gameName, setup);
+    async (gameName: string, setup: SetupPlayer[], options: StartOptions = {}) => {
+      const fresh = initialState(gameName, setup, options);
       historyRef.current = [];
       setUndoCount(0);
       setState(fresh);
@@ -196,7 +205,7 @@ export function useGameEngine() {
   const presentQuestion = useCallback(
     (theme: BoardTheme, difficulty: Difficulty) => {
       update((prev) => {
-        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds);
+        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds, undefined, prev.goldenFirst);
         if (!question) {
           return {
             ...prev,
@@ -232,7 +241,10 @@ export function useGameEngine() {
   /** Resolves the square a player landed on. */
   const resolveLanding = useCallback(
     (playerId: string, position: number, dice: number, bonusChain: number) => {
-      const square = squareAt(position);
+      const board: BoardPosition[] = stateRef.current?.board ?? BOARD_POSITIONS;
+      const size = board.length;
+      const finishAt = size - 1;
+      const square = squareAt(position, board);
       const applyPlayer = (mutate: (p: PlayerState) => PlayerState) =>
         update((prev) => ({
           ...prev,
@@ -264,10 +276,10 @@ export function useGameEngine() {
               players: prev.players.map((p) => {
                 if (p.id !== playerId) return p;
                 const raw = p.position + square.bonusMove;
-                if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                if (raw >= finishAt) {
                   won = true;
-                  landed = 0;
-                  return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                  landed = finishAt;
+                  return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
                 }
                 landed = raw;
                 return { ...p, position: raw };
@@ -277,12 +289,42 @@ export function useGameEngine() {
               declareWinner(playerId);
               return;
             }
-            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed).type === "bonus") {
+            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed, board).type === "bonus") {
               update((prev) => ({
                 ...prev,
                 phase: "PLAYER_TURN",
                 notice: { title: "Bonus chain limit reached. Turn continues.", tone: "info" },
               }));
+              return;
+            }
+            resolveLanding(playerId, landed, dice, bonusChain + 1);
+          }, 900);
+          return;
+        }
+        case "penalty": {
+          log({ eventType: "BONUS", position, diceValue: dice });
+          update((prev) => ({
+            ...prev,
+            phase: "BONUS_ACTION",
+            notice: {
+              title: `PENALTY! Move back ${square.penaltyMove} spaces.`,
+              tone: "danger",
+            },
+          }));
+          window.setTimeout(() => {
+            const current = stateRef.current;
+            if (!current || current.phase === "PAUSED") return;
+            let landed = position;
+            update((prev) => ({
+              ...prev,
+              players: prev.players.map((p) => {
+                if (p.id !== playerId) return p;
+                landed = Math.max(0, p.position - square.penaltyMove);
+                return { ...p, position: landed };
+              }),
+            }));
+            if (squareAt(landed, board).type === "penalty") {
+              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -313,13 +355,13 @@ export function useGameEngine() {
                 players: prev.players.map((p) => {
                   if (p.id !== playerId) return p;
                   const raw = p.position + outcome.amount;
-                  if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                  if (raw >= finishAt) {
                     won = true;
-                    landed = 0;
-                    return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                    landed = finishAt;
+                    return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
                   }
-                  landed = raw;
-                  return { ...p, position: raw };
+                  landed = Math.max(0, raw);
+                  return { ...p, position: landed };
                 }),
               }));
               if (won) declareWinner(playerId);
@@ -327,7 +369,7 @@ export function useGameEngine() {
             }, 1200);
             return;
           }
-          const target = CORNER_POSITION[outcome.target];
+          const target = cornerPositions(size)[outcome.target];
           window.setTimeout(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
@@ -376,6 +418,9 @@ export function useGameEngine() {
             phase: "PLAYER_TURN",
             notice: { title: "Back at START.", tone: "info" },
           }));
+          return;
+        case "finish":
+          declareWinner(playerId);
           return;
       }
     },
@@ -444,11 +489,13 @@ export function useGameEngine() {
         return;
       }
 
+      const size = current.board?.length ?? GAME_SETTINGS.DEFAULT_BOARD_SIZE;
+      const finishAt = size - 1;
       let landed = player.position + dice;
       let won = false;
-      if (landed >= GAME_SETTINGS.BOARD_SIZE) {
+      if (landed >= finishAt) {
         won = true;
-        landed = 0;
+        landed = finishAt;
       }
 
       update((prev) => ({
@@ -456,6 +503,7 @@ export function useGameEngine() {
         lastDice: dice,
         phase: "MOVING",
         notice: null,
+        prevPosition: player.position,
         players: prev.players.map((p) =>
           p.id === player.id
             ? {
@@ -499,6 +547,7 @@ export function useGameEngine() {
       if (!current?.currentQuestion) return;
       const question = current.currentQuestion;
       const player = current.players.find((p) => p.id === current.currentPlayerId);
+      const recedeTo = current.prevPosition;
       update((prev) => ({
         ...prev,
         phase: "ANSWER_REVEALED",
@@ -509,6 +558,7 @@ export function useGameEngine() {
           p.id === prev.currentPlayerId
             ? {
                 ...p,
+                position: !isCorrect && recedeTo !== null ? recedeTo : p.position,
                 correct: isCorrect ? p.correct + 1 : p.correct,
                 incorrect: !isCorrect ? p.incorrect + 1 : p.incorrect,
                 timeouts: isTimeout ? p.timeouts + 1 : p.timeouts,
@@ -518,7 +568,11 @@ export function useGameEngine() {
         notice: isCorrect
           ? { title: "Correct! You get another turn.", tone: "success" }
           : {
-              title: isTimeout ? "Time up. Turn passes to the next player." : "Incorrect. Turn passes to the next player.",
+              title: isTimeout ? "Time up! Your pawn moves back." : "Incorrect! Your pawn moves back.",
+              body:
+                recedeTo !== null
+                  ? `The pawn returns to where it stood before the dice roll (house ${recedeTo + 1}). Turn passes to the next player.`
+                  : "Turn passes to the next player.",
               tone: "danger",
             },
       }));
@@ -694,6 +748,31 @@ export function useGameEngine() {
     [safe, update],
   );
 
+  /** Presenter/admin tool: drop a player mid-game. */
+  const removePlayer = useCallback(
+    (playerId: string) => {
+      pushHistory();
+      update((prev) => {
+        if (prev.players.length <= 1) return prev;
+        const removed = prev.players.find((p) => p.id === playerId);
+        const players = prev.players.filter((p) => p.id !== playerId);
+        const wasCurrent = prev.currentPlayerId === playerId;
+        return {
+          ...prev,
+          players,
+          currentPlayerId: wasCurrent ? players[0]!.id : prev.currentPlayerId,
+          currentQuestion: wasCurrent ? null : prev.currentQuestion,
+          selectedOption: wasCurrent ? null : prev.selectedOption,
+          phase: wasCurrent ? "PLAYER_TURN" : prev.phase,
+          winnerIds: prev.winnerIds.filter((id) => id !== playerId),
+          notice: { title: `${removed?.name ?? "Player"} was removed from the game.`, tone: "info" },
+        };
+      });
+      log({ eventType: "MANUAL_MOVE" });
+    },
+    [log, pushHistory, update],
+  );
+
   const undo = useCallback(() => {
     const stack = historyRef.current;
     if (stack.length === 0) return false;
@@ -739,7 +818,7 @@ export function useGameEngine() {
     undoCount,
     questionsRemaining,
     remainingForCurrentSquare,
-    boardPositions: BOARD_POSITIONS,
+    board: state?.board ?? BOARD_POSITIONS,
     startGame,
     resumeStored,
     move,
@@ -757,6 +836,7 @@ export function useGameEngine() {
     manualMove,
     renamePlayer,
     renameGame,
+    removePlayer,
     undo,
     endTurn,
     continuePlay,

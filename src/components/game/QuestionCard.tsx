@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Question } from "@/game/types";
 import { GAME_SETTINGS } from "@/game/config";
+import { gameAudio } from "@/game/audio";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +15,7 @@ export function QuestionCard({
   wasTimeout,
   playerName,
   playerColor,
+  soundOn,
   onSelect,
   onTick,
   onTimeout,
@@ -28,6 +30,7 @@ export function QuestionCard({
   wasTimeout: boolean;
   playerName: string;
   playerColor: string;
+  soundOn: boolean;
   onSelect: (option: "A" | "B" | "C" | "D") => void;
   onTick: () => void;
   onTimeout: () => void;
@@ -37,6 +40,7 @@ export function QuestionCard({
 }) {
   const isActive = phase === "QUESTION_ACTIVE";
   const revealed = phase === "ANSWER_REVEALED";
+  const revealSoundPlayed = useRef(false);
 
   useEffect(() => {
     if (!isActive) return;
@@ -44,9 +48,33 @@ export function QuestionCard({
     return () => window.clearInterval(id);
   }, [isActive, onTick]);
 
+  // Looping suspense bed + loud clock tick while the question is live.
+  useEffect(() => {
+    if (!soundOn) return;
+    if (isActive) gameAudio.startMusic();
+    else gameAudio.stopMusic();
+    return () => gameAudio.stopMusic();
+  }, [isActive, soundOn]);
+
+  useEffect(() => {
+    if (isActive && soundOn && timeRemaining > 0) gameAudio.tick(timeRemaining);
+  }, [isActive, soundOn, timeRemaining]);
+
   useEffect(() => {
     if (isActive && timeRemaining <= 0) onTimeout();
   }, [isActive, timeRemaining, onTimeout]);
+
+  useEffect(() => {
+    if (!revealed) {
+      revealSoundPlayed.current = false;
+      return;
+    }
+    if (revealSoundPlayed.current || !soundOn) return;
+    revealSoundPlayed.current = true;
+    if (wasTimeout) gameAudio.timeUp();
+    else if (selectedOption === question.correct_option) gameAudio.correct();
+    else gameAudio.wrong();
+  }, [revealed, soundOn, wasTimeout, selectedOption, question.correct_option]);
 
   const progress = (timeRemaining / GAME_SETTINGS.QUESTION_TIME_SECONDS) * 100;
   const options: Record<(typeof LETTERS)[number], string> = {
@@ -57,76 +85,86 @@ export function QuestionCard({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: playerColor }} />
-          <span className="text-sm font-semibold text-foreground">{playerName}</span>
-          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-            {question.theme} · {question.difficulty}
+    <section className="stage-backdrop relative overflow-hidden rounded-2xl border border-border p-5">
+      <span className="smoke-veil pointer-events-none absolute -inset-10" aria-hidden="true" />
+      <div className="relative">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="h-3 w-3 rounded-full" style={{ backgroundColor: playerColor }} />
+            <span className="text-sm font-bold text-foreground">{playerName}</span>
+            <span className="rounded-full border border-border bg-secondary/70 px-2 py-0.5 text-xs text-muted-foreground">
+              {question.theme} · {question.difficulty}
+            </span>
+          </div>
+          <span
+            className={cn(
+              "font-display text-3xl font-black tabular-nums",
+              isActive && timeRemaining <= 10 ? "animate-tick-pulse text-destructive" : "text-gold",
+            )}
+          >
+            {isActive ? `${timeRemaining}s` : wasTimeout ? "0s" : "—"}
           </span>
         </div>
-        <span
-          className={cn(
-            "font-display text-2xl font-black tabular-nums",
-            timeRemaining <= 5 ? "text-destructive" : "text-foreground",
+
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-background/70">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              timeRemaining <= 10 ? "bg-destructive" : "bg-accent",
+            )}
+            style={{ width: `${isActive ? progress : 0}%` }}
+          />
+        </div>
+
+        <div className="lozenge-shell mt-5 px-8 py-5">
+          <h2 className="text-center text-base font-semibold leading-snug text-foreground sm:text-lg">
+            {question.question}
+          </h2>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {LETTERS.map((letter) => {
+            const isCorrect = question.correct_option === letter;
+            const isSelected = selectedOption === letter;
+            const showState = phase === "ANSWER_SELECTED" || revealed;
+            return (
+              <button
+                key={letter}
+                type="button"
+                disabled={!isActive}
+                onClick={() => onSelect(letter)}
+                className={cn(
+                  "lozenge flex items-center gap-3 px-6 py-3 text-left text-sm",
+                  isActive && "hover:scale-[1.02] hover:brightness-125",
+                  showState && isCorrect && "animate-answer-blink !bg-[linear-gradient(180deg,oklch(0.62_0.18_150),oklch(0.4_0.14_150))]",
+                  showState && isSelected && !isCorrect && "!bg-[linear-gradient(180deg,oklch(0.58_0.22_20),oklch(0.36_0.16_20))]",
+                )}
+              >
+                <span className="font-display text-base font-black text-gold">{letter}</span>
+                <span className="text-foreground">{options[letter]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2">
+          {revealed ? (
+            <Button onClick={onContinue}>Continue</Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={onTimeout} disabled={!isActive}>
+                Mark as time up
+              </Button>
+              <Button variant="outline" onClick={onDifferentQuestion} disabled={!isActive}>
+                Different question
+              </Button>
+              <Button variant="ghost" onClick={onSkip} disabled={!isActive}>
+                Skip question
+              </Button>
+            </>
           )}
-        >
-          {isActive ? `${timeRemaining}s` : wasTimeout ? "0s" : "—"}
-        </span>
+        </div>
       </div>
-
-      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div
-          className={cn("h-full rounded-full transition-all", timeRemaining <= 5 ? "bg-destructive" : "bg-gold")}
-          style={{ width: `${isActive ? progress : 0}%` }}
-        />
-      </div>
-
-      <h2 className="mt-4 text-lg font-semibold leading-snug text-foreground">{question.question}</h2>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        {LETTERS.map((letter) => {
-          const isCorrect = question.correct_option === letter;
-          const isSelected = selectedOption === letter;
-          const showState = phase === "ANSWER_SELECTED" || revealed;
-          return (
-            <button
-              key={letter}
-              type="button"
-              disabled={!isActive}
-              onClick={() => onSelect(letter)}
-              className={cn(
-                "flex items-start gap-3 rounded-lg border border-border bg-background p-3 text-left text-sm transition-colors",
-                isActive && "hover:border-gold hover:bg-secondary",
-                showState && isCorrect && "border-success bg-success/15 animate-answer-blink",
-                showState && isSelected && !isCorrect && "border-destructive bg-destructive/15",
-              )}
-            >
-              <span className="font-display text-sm font-black text-muted-foreground">{letter}</span>
-              <span className="text-foreground">{options[letter]}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {revealed ? (
-          <Button onClick={onContinue}>Continue</Button>
-        ) : (
-          <>
-            <Button variant="secondary" onClick={onTimeout} disabled={!isActive}>
-              Mark as time up
-            </Button>
-            <Button variant="outline" onClick={onDifferentQuestion} disabled={!isActive}>
-              Different question
-            </Button>
-            <Button variant="ghost" onClick={onSkip} disabled={!isActive}>
-              Skip question
-            </Button>
-          </>
-        )}
-      </div>
-    </div>
+    </section>
   );
 }

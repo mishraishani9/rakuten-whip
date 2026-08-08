@@ -19,6 +19,8 @@ export function PresenterPanel({
   onManualMove,
   onRenamePlayer,
   onRenameGame,
+  onRemovePlayer,
+  canManagePlayers,
   onUndo,
   onEndTurn,
   onPause,
@@ -37,6 +39,8 @@ export function PresenterPanel({
   onManualMove: (id: string, position: number) => void;
   onRenamePlayer: (id: string, name: string) => void;
   onRenameGame: (name: string) => void;
+  onRemovePlayer: (id: string) => void;
+  canManagePlayers: boolean;
   onUndo: () => void;
   onEndTurn: () => void;
   onPause: () => void;
@@ -79,7 +83,7 @@ export function PresenterPanel({
             <div className="min-w-0">
               <p className="truncate text-sm font-bold text-foreground">{currentPlayer.name}</p>
               <p className="truncate text-xs text-muted-foreground">
-                Position {currentPlayer.position} · {squareLabel(squareAt(currentPlayer.position))}
+                House {currentPlayer.position + 1} · {squareLabel(squareAt(currentPlayer.position, state.board))}
                 {currentPlayer.inJail ? " · In Jail" : ""}
               </p>
             </div>
@@ -168,7 +172,7 @@ export function PresenterPanel({
                       {p.name}
                     </button>
                     <span className="text-xs tabular-nums text-muted-foreground">
-                      #{p.position} · {p.correct}✓ {p.incorrect}✗
+                      H{p.position + 1} · {p.correct}✓ {p.incorrect}✗
                     </span>
                     <button
                       type="button"
@@ -180,6 +184,16 @@ export function PresenterPanel({
                     >
                       edit
                     </button>
+                    {canManagePlayers && state.players.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-xs text-destructive underline"
+                        onClick={() => onRemovePlayer(p.id)}
+                        aria-label={`Remove ${p.name}`}
+                      >
+                        remove
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -207,7 +221,7 @@ export function PresenterPanel({
           <div className="mt-3 space-y-3">
             <div className="space-y-1">
               <Label htmlFor="manual-move" className="text-xs">
-                Move current player to position (0–{GAME_SETTINGS.BOARD_SIZE - 1})
+                Move current player to house (1–{state.board.length})
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -221,9 +235,9 @@ export function PresenterPanel({
                   size="sm"
                   variant="secondary"
                   onClick={() => {
-                    const target = Number(manualTarget);
+                    const target = Number(manualTarget) - 1;
                     if (!currentPlayer || Number.isNaN(target)) return;
-                    if (target < 0 || target >= GAME_SETTINGS.BOARD_SIZE) return;
+                    if (target < 0 || target >= state.board.length) return;
                     onManualMove(currentPlayer.id, target);
                     setManualTarget("");
                   }}

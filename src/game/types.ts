@@ -1,4 +1,4 @@
-import type { BoardTheme, Difficulty } from "./config";
+import type { BoardPosition, BoardTheme, Difficulty } from "./config";
 
 export type Question = {
   record_id: string;
@@ -57,10 +57,15 @@ export type GameState = {
   gameName: string;
   phase: GamePhase;
   phaseBeforePause: GamePhase | null;
+  board: BoardPosition[];
+  boardSize: number;
+  goldenFirst: boolean;
   players: PlayerState[];
   currentPlayerId: string;
   turnNumber: number;
   lastDice: number | null;
+  /** Position of the current player before the latest dice roll (recede target). */
+  prevPosition: number | null;
   usedQuestionIds: string[];
   currentQuestion: Question | null;
   currentSquareTheme: BoardTheme | null;
