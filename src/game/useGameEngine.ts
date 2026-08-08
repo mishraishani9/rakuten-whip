@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BOARD_POSITIONS,
-  CORNER_POSITION,
+  buildBoard,
+  cornerPositions,
   EVENT_RULES,
   GAME_SETTINGS,
   squareAt,
+  type BoardPosition,
   type BoardTheme,
   type Difficulty,
 } from "./config";
@@ -13,6 +15,7 @@ import { loadQuestionBank, pickQuestion, poolFor } from "@/services/questionServ
 import * as gameService from "@/services/gameService";
 
 export type SetupPlayer = { number: number; name: string; color: string };
+export type StartOptions = { boardSize?: number; goldenFirst?: boolean };
 
 const SESSION_KEY = "ipquiz.activeGame";
 
@@ -38,17 +41,23 @@ function makePlayer(p: SetupPlayer): PlayerState {
   };
 }
 
-export function initialState(gameName: string, setup: SetupPlayer[]): GameState {
+export function initialState(gameName: string, setup: SetupPlayer[], options: StartOptions = {}): GameState {
   const players = setup.map(makePlayer);
+  const boardSize = options.boardSize ?? GAME_SETTINGS.DEFAULT_BOARD_SIZE;
+  const board = buildBoard(boardSize);
   return {
     gameId: null,
     gameName,
     phase: "READY",
     phaseBeforePause: null,
+    board,
+    boardSize: board.length,
+    goldenFirst: options.goldenFirst ?? false,
     players,
     currentPlayerId: players[0]?.id ?? "p1",
     turnNumber: 1,
     lastDice: null,
+    prevPosition: null,
     usedQuestionIds: [],
     currentQuestion: null,
     currentSquareTheme: null,
