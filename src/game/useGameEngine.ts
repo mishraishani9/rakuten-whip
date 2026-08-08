@@ -547,6 +547,7 @@ export function useGameEngine() {
       if (!current?.currentQuestion) return;
       const question = current.currentQuestion;
       const player = current.players.find((p) => p.id === current.currentPlayerId);
+      const recedeTo = current.prevPosition;
       update((prev) => ({
         ...prev,
         phase: "ANSWER_REVEALED",
@@ -557,6 +558,7 @@ export function useGameEngine() {
           p.id === prev.currentPlayerId
             ? {
                 ...p,
+                position: !isCorrect && recedeTo !== null ? recedeTo : p.position,
                 correct: isCorrect ? p.correct + 1 : p.correct,
                 incorrect: !isCorrect ? p.incorrect + 1 : p.incorrect,
                 timeouts: isTimeout ? p.timeouts + 1 : p.timeouts,
@@ -566,7 +568,11 @@ export function useGameEngine() {
         notice: isCorrect
           ? { title: "Correct! You get another turn.", tone: "success" }
           : {
-              title: isTimeout ? "Time up. Turn passes to the next player." : "Incorrect. Turn passes to the next player.",
+              title: isTimeout ? "Time up! Your pawn moves back." : "Incorrect! Your pawn moves back.",
+              body:
+                recedeTo !== null
+                  ? `The pawn returns to where it stood before the dice roll (house ${recedeTo + 1}). Turn passes to the next player.`
+                  : "Turn passes to the next player.",
               tone: "danger",
             },
       }));
