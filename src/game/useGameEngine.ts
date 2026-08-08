@@ -150,8 +150,8 @@ export function useGameEngine() {
 
   /** Begin a game: creates the backend records but never blocks gameplay. */
   const startGame = useCallback(
-    async (gameName: string, setup: SetupPlayer[]) => {
-      const fresh = initialState(gameName, setup);
+    async (gameName: string, setup: SetupPlayer[], options: StartOptions = {}) => {
+      const fresh = initialState(gameName, setup, options);
       historyRef.current = [];
       setUndoCount(0);
       setState(fresh);
@@ -205,7 +205,7 @@ export function useGameEngine() {
   const presentQuestion = useCallback(
     (theme: BoardTheme, difficulty: Difficulty) => {
       update((prev) => {
-        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds);
+        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds, undefined, prev.goldenFirst);
         if (!question) {
           return {
             ...prev,
@@ -241,7 +241,10 @@ export function useGameEngine() {
   /** Resolves the square a player landed on. */
   const resolveLanding = useCallback(
     (playerId: string, position: number, dice: number, bonusChain: number) => {
-      const square = squareAt(position);
+      const board: BoardPosition[] = stateRef.current?.board ?? BOARD_POSITIONS;
+      const size = board.length;
+      const finishAt = size - 1;
+      const square = squareAt(position, board);
       const applyPlayer = (mutate: (p: PlayerState) => PlayerState) =>
         update((prev) => ({
           ...prev,
@@ -273,10 +276,10 @@ export function useGameEngine() {
               players: prev.players.map((p) => {
                 if (p.id !== playerId) return p;
                 const raw = p.position + square.bonusMove;
-                if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                if (raw >= finishAt) {
                   won = true;
-                  landed = 0;
-                  return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                  landed = finishAt;
+                  return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
                 }
                 landed = raw;
                 return { ...p, position: raw };
@@ -286,12 +289,42 @@ export function useGameEngine() {
               declareWinner(playerId);
               return;
             }
-            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed).type === "bonus") {
+            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed, board).type === "bonus") {
               update((prev) => ({
                 ...prev,
                 phase: "PLAYER_TURN",
                 notice: { title: "Bonus chain limit reached. Turn continues.", tone: "info" },
               }));
+              return;
+            }
+            resolveLanding(playerId, landed, dice, bonusChain + 1);
+          }, 900);
+          return;
+        }
+        case "penalty": {
+          log({ eventType: "BONUS", position, diceValue: dice });
+          update((prev) => ({
+            ...prev,
+            phase: "BONUS_ACTION",
+            notice: {
+              title: `PENALTY! Move back ${square.penaltyMove} spaces.`,
+              tone: "danger",
+            },
+          }));
+          window.setTimeout(() => {
+            const current = stateRef.current;
+            if (!current || current.phase === "PAUSED") return;
+            let landed = position;
+            update((prev) => ({
+              ...prev,
+              players: prev.players.map((p) => {
+                if (p.id !== playerId) return p;
+                landed = Math.max(0, p.position - square.penaltyMove);
+                return { ...p, position: landed };
+              }),
+            }));
+            if (squareAt(landed, board).type === "penalty") {
+              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -322,13 +355,13 @@ export function useGameEngine() {
                 players: prev.players.map((p) => {
                   if (p.id !== playerId) return p;
                   const raw = p.position + outcome.amount;
-                  if (raw >= GAME_SETTINGS.BOARD_SIZE) {
+                  if (raw >= finishAt) {
                     won = true;
-                    landed = 0;
-                    return { ...p, position: 0, laps: p.laps + 1, completedCircuit: true };
+                    landed = finishAt;
+                    return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
                   }
-                  landed = raw;
-                  return { ...p, position: raw };
+                  landed = Math.max(0, raw);
+                  return { ...p, position: landed };
                 }),
               }));
               if (won) declareWinner(playerId);
@@ -336,7 +369,7 @@ export function useGameEngine() {
             }, 1200);
             return;
           }
-          const target = CORNER_POSITION[outcome.target];
+          const target = cornerPositions(size)[outcome.target];
           window.setTimeout(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
@@ -385,6 +418,9 @@ export function useGameEngine() {
             phase: "PLAYER_TURN",
             notice: { title: "Back at START.", tone: "info" },
           }));
+          return;
+        case "finish":
+          declareWinner(playerId);
           return;
       }
     },
