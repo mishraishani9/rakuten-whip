@@ -109,33 +109,87 @@ export function boardThemeForRawTheme(rawTheme: string): BoardTheme | null {
   return null;
 }
 
-/** 24 perimeter squares. Corners: 0 START, 6 CLUB, 12 BAR, 18 JAIL. */
-export const BOARD_POSITIONS: BoardPosition[] = [
-  { position: 0, type: "start", label: "START" },
-  { position: 1, type: "question", theme: "IP Fundamentals", difficulty: "Easy" },
-  { position: 2, type: "question", theme: "Patent", difficulty: "Easy" },
-  { position: 3, type: "event" },
-  { position: 4, type: "question", theme: "Trademark", difficulty: "Easy" },
-  { position: 5, type: "question", theme: "Prior Art", difficulty: "Medium" },
-  { position: 6, type: "club", label: "CLUB" },
-  { position: 7, type: "question", theme: "Trademark", difficulty: "Medium" },
-  { position: 8, type: "bonus", bonusMove: 2 },
-  { position: 9, type: "question", theme: "Patentability", difficulty: "Medium" },
-  { position: 10, type: "question", theme: "Copyright", difficulty: "Easy" },
-  { position: 11, type: "question", theme: "Inventorship", difficulty: "Medium" },
-  { position: 12, type: "bar", label: "BAR" },
-  { position: 13, type: "question", theme: "Trade Secrets", difficulty: "Medium" },
-  { position: 14, type: "event" },
-  { position: 15, type: "question", theme: "SEPs & Standards", difficulty: "Hard" },
-  { position: 16, type: "question", theme: "Patent", difficulty: "Medium" },
-  { position: 17, type: "question", theme: "Prior Art", difficulty: "Hard" },
-  { position: 18, type: "jail", label: "JAIL" },
-  { position: 19, type: "question", theme: "Patentability", difficulty: "Hard" },
-  { position: 20, type: "bonus", bonusMove: 3 },
-  { position: 21, type: "question", theme: "Inventorship", difficulty: "Hard" },
-  { position: 22, type: "event" },
-  { position: 23, type: "question", theme: "IP Fundamentals", difficulty: "Medium" },
+const BOARD_THEME_CYCLE: BoardTheme[] = [
+  "IP Fundamentals",
+  "Patent",
+  "Trademark",
+  "Copyright",
+  "Prior Art",
+  "Patentability",
+  "Inventorship",
+  "Trade Secrets",
+  "SEPs & Standards",
 ];
+
+/**
+ * Builds a perimeter board of `size` houses: 4 corners
+ * (START, CLUB, BAR, JAIL) plus (size - 4) / 4 houses on each side.
+ * The final house before START is the FINISH line.
+ */
+export function buildBoard(size: number): BoardPosition[] {
+  const total = isValidBoardSize(size) ? size : GAME_SETTINGS.DEFAULT_BOARD_SIZE;
+  const perSide = housesPerSide(total);
+  const corners = new Map<number, { type: "start" | "club" | "bar" | "jail"; label: string }>([
+    [0, { type: "start", label: "START" }],
+    [perSide + 1, { type: "club", label: "CLUB" }],
+    [2 * (perSide + 1), { type: "bar", label: "BAR" }],
+    [3 * (perSide + 1), { type: "jail", label: "JAIL" }],
+  ]);
+
+  const openSlots: number[] = [];
+  for (let i = 1; i < total; i++) {
+    if (!corners.has(i) && i !== total - 1) openSlots.push(i);
+  }
+
+  const specialCount = Math.max(2, Math.round(total / 10));
+  const eventCount = Math.max(3, Math.round(total / 8));
+  const special = new Map<number, BoardPosition>();
+  const takeEvenly = (count: number, offset: number, make: (n: number) => BoardPosition) => {
+    if (count <= 0 || openSlots.length === 0) return;
+    const step = openSlots.length / count;
+    for (let n = 0; n < count; n++) {
+      for (let attempt = 0; attempt < openSlots.length; attempt++) {
+        const idx = Math.floor(n * step + offset + attempt) % openSlots.length;
+        const slot = openSlots[idx]!;
+        if (!special.has(slot)) {
+          special.set(slot, make(n));
+          break;
+        }
+      }
+    }
+  };
+
+  takeEvenly(specialCount, 1, (n) => ({ position: 0, type: "bonus", bonusMove: n % 2 === 0 ? 3 : 4 }));
+  takeEvenly(specialCount, 3, (n) => ({ position: 0, type: "penalty", penaltyMove: n % 2 === 0 ? 2 : 3 }));
+  takeEvenly(eventCount, 5, () => ({ position: 0, type: "event" }));
+
+  const board: BoardPosition[] = [];
+  let themeIndex = 0;
+  for (let i = 0; i < total; i++) {
+    const corner = corners.get(i);
+    if (corner) {
+      board.push({ position: i, ...corner });
+      continue;
+    }
+    if (i === total - 1) {
+      board.push({ position: i, type: "finish", label: "FINISH" });
+      continue;
+    }
+    const preset = special.get(i);
+    if (preset) {
+      board.push({ ...preset, position: i });
+      continue;
+    }
+    const side = Math.floor(i / (perSide + 1));
+    const difficulty: Difficulty = side === 0 ? "Easy" : side === 3 ? "Hard" : "Medium";
+    const theme = BOARD_THEME_CYCLE[themeIndex % BOARD_THEME_CYCLE.length]!;
+    themeIndex++;
+    board.push({ position: i, type: "question", theme, difficulty });
+  }
+  return board;
+}
+
+export const BOARD_POSITIONS: BoardPosition[] = buildBoard(GAME_SETTINGS.DEFAULT_BOARD_SIZE);
 
 export type EventOutcome =
   | { kind: "goto"; target: "club" | "bar" | "jail"; label: string; description: string }
@@ -144,11 +198,11 @@ export type EventOutcome =
 /** Outcome of a "?" square, driven by the dice value that landed the player there. */
 export const EVENT_RULES: Record<number, EventOutcome> = {
   1: { kind: "goto", target: "bar", label: "OFF TO THE BAR", description: "Networking got out of hand — go to BAR and miss two turns." },
-  2: { kind: "bonus", amount: 2, label: "FAST TRACK +2", description: "Your filing was fast-tracked. Move forward 2 spaces." },
+  2: { kind: "bonus", amount: 3, label: "FAST TRACK +3", description: "Your filing was fast-tracked. Move forward 3 spaces." },
   3: { kind: "goto", target: "jail", label: "INFRINGEMENT NOTICE", description: "An injunction lands on your desk — go to JAIL." },
   4: { kind: "goto", target: "club", label: "INNOVATORS CLUB", description: "Invited to the Innovators Club — go to CLUB and miss one turn." },
-  5: { kind: "goto", target: "bar", label: "LICENSING DINNER", description: "A long licensing dinner — go to BAR and miss two turns." },
-  6: { kind: "bonus", amount: 3, label: "GRANT ISSUED +3", description: "Your patent was granted. Move forward 3 spaces." },
+  5: { kind: "bonus", amount: -3, label: "OPPOSITION FILED −3", description: "An opposition was filed — move back 3 spaces." },
+  6: { kind: "bonus", amount: 4, label: "GRANT ISSUED +4", description: "Your patent was granted. Move forward 4 spaces." },
 };
 
 export const PAWN_COLORS = [
@@ -189,9 +243,21 @@ export const REQUIRED_CSV_COLUMNS = CSV_COLUMNS.filter((c) => c !== "Record_Type
 
 export const DIFFICULTIES: Difficulty[] = ["Easy", "Medium", "Hard"];
 
-export function squareAt(position: number): BoardPosition {
-  const normalized = ((position % GAME_SETTINGS.BOARD_SIZE) + GAME_SETTINGS.BOARD_SIZE) % GAME_SETTINGS.BOARD_SIZE;
-  return BOARD_POSITIONS[normalized]!;
+export function cornerPositions(boardSize: number) {
+  const perSide = housesPerSide(boardSize);
+  return {
+    start: 0,
+    club: perSide + 1,
+    bar: 2 * (perSide + 1),
+    jail: 3 * (perSide + 1),
+    finish: boardSize - 1,
+  };
+}
+
+export function squareAt(position: number, board: BoardPosition[] = BOARD_POSITIONS): BoardPosition {
+  const size = board.length;
+  const normalized = ((position % size) + size) % size;
+  return board[normalized]!;
 }
 
 export function squareLabel(square: BoardPosition): string {
@@ -200,6 +266,8 @@ export function squareLabel(square: BoardPosition): string {
       return `${square.theme} · ${square.difficulty}`;
     case "bonus":
       return `Bonus +${square.bonusMove}`;
+    case "penalty":
+      return `Penalty −${square.penaltyMove}`;
     case "event":
       return "Event ?";
     default:
