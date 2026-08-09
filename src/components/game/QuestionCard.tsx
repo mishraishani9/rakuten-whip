@@ -22,6 +22,8 @@ export function QuestionCard({
   onContinue,
   onDifferentQuestion,
   onSkip,
+  variant = "presenter",
+  canAnswer = true,
 }: {
   question: Question;
   phase: string;
@@ -32,18 +34,21 @@ export function QuestionCard({
   playerColor: string;
   soundOn: boolean;
   onSelect: (option: "A" | "B" | "C" | "D") => void;
-  onTick: () => void;
-  onTimeout: () => void;
-  onContinue: () => void;
-  onDifferentQuestion: () => void;
-  onSkip: () => void;
+  onTick?: () => void;
+  onTimeout?: () => void;
+  onContinue?: () => void;
+  onDifferentQuestion?: () => void;
+  onSkip?: () => void;
+  /** "player" renders the read-only online view: answers only, no presenter tools. */
+  variant?: "presenter" | "player";
+  canAnswer?: boolean;
 }) {
   const isActive = phase === "QUESTION_ACTIVE";
   const revealed = phase === "ANSWER_REVEALED";
   const revealSoundPlayed = useRef(false);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !onTick) return;
     const id = window.setInterval(() => onTick(), 1000);
     return () => window.clearInterval(id);
   }, [isActive, onTick]);
@@ -53,7 +58,7 @@ export function QuestionCard({
   }, [isActive, soundOn, timeRemaining]);
 
   useEffect(() => {
-    if (isActive && timeRemaining <= 0) onTimeout();
+    if (isActive && timeRemaining <= 0) onTimeout?.();
   }, [isActive, timeRemaining, onTimeout]);
 
   useEffect(() => {
@@ -123,11 +128,11 @@ export function QuestionCard({
               <button
                 key={letter}
                 type="button"
-                disabled={!isActive}
+                disabled={!isActive || !canAnswer}
                 onClick={() => onSelect(letter)}
                 className={cn(
                   "lozenge flex items-center gap-3 px-6 py-3 text-left text-sm",
-                  isActive && "hover:scale-[1.02] hover:brightness-125",
+                  isActive && canAnswer && "hover:scale-[1.02] hover:brightness-125",
                   showState && isCorrect && "animate-answer-blink !bg-[linear-gradient(180deg,oklch(0.62_0.18_150),oklch(0.4_0.14_150))]",
                   showState && isSelected && !isCorrect && "!bg-[linear-gradient(180deg,oklch(0.58_0.22_20),oklch(0.36_0.16_20))]",
                 )}
@@ -139,6 +144,7 @@ export function QuestionCard({
           })}
         </div>
 
+        {variant === "presenter" && (
         <div className="mt-5 flex flex-wrap gap-2">
           {revealed ? (
             <Button onClick={onContinue}>Continue</Button>
@@ -156,6 +162,7 @@ export function QuestionCard({
             </>
           )}
         </div>
+        )}
       </div>
     </section>
   );

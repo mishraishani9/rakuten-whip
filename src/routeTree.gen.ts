@@ -10,16 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CodeRouteImport } from './routes/$code'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as PlayRouteImport } from './routes/play'
 import { Route as QuestionsRouteImport } from './routes/questions'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as CodeSlugRouteImport } from './routes/$code.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CodeRoute = CodeRouteImport.update({
+  id: '/$code',
+  path: '/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -52,54 +59,85 @@ const UploadRoute = UploadRouteImport.update({
   path: '/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CodeSlugRoute = CodeSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CodeRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$code': typeof CodeRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
   '/play': typeof PlayRoute
   '/questions': typeof QuestionsRoute
   '/upload': typeof UploadRoute
+  '/$code/$slug': typeof CodeSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$code': typeof CodeRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
   '/play': typeof PlayRoute
   '/questions': typeof QuestionsRoute
   '/upload': typeof UploadRoute
+  '/$code/$slug': typeof CodeSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$code': typeof CodeRouteWithChildren
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/history': typeof HistoryRoute
   '/play': typeof PlayRoute
   '/questions': typeof QuestionsRoute
   '/upload': typeof UploadRoute
+  '/$code/$slug': typeof CodeSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/admin' | '/auth' | '/history' | '/play' | '/questions' | '/upload'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/history' | '/play' | '/questions' | '/upload'
-  id:
-    | '__root__'
     | '/'
+    | '/$code'
     | '/admin'
     | '/auth'
     | '/history'
     | '/play'
     | '/questions'
     | '/upload'
+    | '/$code/$slug'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/$code'
+    | '/admin'
+    | '/auth'
+    | '/history'
+    | '/play'
+    | '/questions'
+    | '/upload'
+    | '/$code/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/$code'
+    | '/admin'
+    | '/auth'
+    | '/history'
+    | '/play'
+    | '/questions'
+    | '/upload'
+    | '/$code/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CodeRoute: typeof CodeRouteWithChildren
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   HistoryRoute: typeof HistoryRoute
@@ -115,6 +153,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$code': {
+      id: '/$code'
+      path: '/$code'
+      fullPath: '/$code'
+      preLoaderRoute: typeof CodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -159,11 +204,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$code/$slug': {
+      id: '/$code/$slug'
+      path: '/$slug'
+      fullPath: '/$code/$slug'
+      preLoaderRoute: typeof CodeSlugRouteImport
+      parentRoute: typeof CodeRoute
+    }
   }
 }
 
+interface CodeRouteChildren {
+  CodeSlugRoute: typeof CodeSlugRoute
+}
+
+const CodeRouteChildren: CodeRouteChildren = {
+  CodeSlugRoute: CodeSlugRoute,
+}
+
+const CodeRouteWithChildren = CodeRoute._addFileChildren(CodeRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CodeRoute: CodeRouteWithChildren,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   HistoryRoute: HistoryRoute,
