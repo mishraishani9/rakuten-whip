@@ -22,6 +22,8 @@ export function QuestionCard({
   onContinue,
   onDifferentQuestion,
   onSkip,
+  variant = "presenter",
+  canAnswer = true,
 }: {
   question: Question;
   phase: string;
@@ -32,18 +34,21 @@ export function QuestionCard({
   playerColor: string;
   soundOn: boolean;
   onSelect: (option: "A" | "B" | "C" | "D") => void;
-  onTick: () => void;
-  onTimeout: () => void;
-  onContinue: () => void;
-  onDifferentQuestion: () => void;
-  onSkip: () => void;
+  onTick?: () => void;
+  onTimeout?: () => void;
+  onContinue?: () => void;
+  onDifferentQuestion?: () => void;
+  onSkip?: () => void;
+  /** "player" renders the read-only online view: answers only, no presenter tools. */
+  variant?: "presenter" | "player";
+  canAnswer?: boolean;
 }) {
   const isActive = phase === "QUESTION_ACTIVE";
   const revealed = phase === "ANSWER_REVEALED";
   const revealSoundPlayed = useRef(false);
 
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || !onTick) return;
     const id = window.setInterval(() => onTick(), 1000);
     return () => window.clearInterval(id);
   }, [isActive, onTick]);
@@ -53,7 +58,7 @@ export function QuestionCard({
   }, [isActive, soundOn, timeRemaining]);
 
   useEffect(() => {
-    if (isActive && timeRemaining <= 0) onTimeout();
+    if (isActive && timeRemaining <= 0) onTimeout?.();
   }, [isActive, timeRemaining, onTimeout]);
 
   useEffect(() => {
