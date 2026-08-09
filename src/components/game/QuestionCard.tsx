@@ -128,11 +128,11 @@ export function QuestionCard({
               <button
                 key={letter}
                 type="button"
-                disabled={!isActive}
+                disabled={!isActive || !canAnswer}
                 onClick={() => onSelect(letter)}
                 className={cn(
                   "lozenge flex items-center gap-3 px-6 py-3 text-left text-sm",
-                  isActive && "hover:scale-[1.02] hover:brightness-125",
+                  isActive && canAnswer && "hover:scale-[1.02] hover:brightness-125",
                   showState && isCorrect && "animate-answer-blink !bg-[linear-gradient(180deg,oklch(0.62_0.18_150),oklch(0.4_0.14_150))]",
                   showState && isSelected && !isCorrect && "!bg-[linear-gradient(180deg,oklch(0.58_0.22_20),oklch(0.36_0.16_20))]",
                 )}
@@ -144,6 +144,7 @@ export function QuestionCard({
           })}
         </div>
 
+        {variant === "presenter" && (
         <div className="mt-5 flex flex-wrap gap-2">
           {revealed ? (
             <Button onClick={onContinue}>Continue</Button>
@@ -161,6 +162,7 @@ export function QuestionCard({
             </>
           )}
         </div>
+        )}
       </div>
     </section>
   );
