@@ -2,13 +2,14 @@
  * WHIP soundtrack. Everything is synthesised with WebAudio so it works offline.
  *
  * Three independent layers:
- *  - "menu"     : calm bed for splash / home / game configuration
+ *  - "menu"     : calm bed for splash / home
+ *  - "setup"    : brighter bed for game configuration
  *  - "gameplay" : driving bed for an active session
  *  - tick       : loud clock overlay that plays ON TOP of the gameplay bed
  *                 while a question is on screen.
  */
 
-type TrackName = "menu" | "gameplay";
+type TrackName = "menu" | "setup" | "gameplay";
 
 type Layer = {
   timer: number | null;
@@ -29,6 +30,12 @@ const PATTERNS: Record<TrackName, { bass: number[]; lead: number[]; beatMs: numb
     lead: [392, 493.88, 587.33, 493.88],
     beatMs: 760,
     gain: 0.1,
+  },
+  setup: {
+    bass: [104, 104, 138.59, 123.47],
+    lead: [415.3, 523.25, 622.25, 523.25, 466.16, 415.3],
+    beatMs: 620,
+    gain: 0.11,
   },
   gameplay: {
     bass: [110, 110, 146.83, 130.81],
