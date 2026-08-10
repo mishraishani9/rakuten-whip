@@ -91,12 +91,12 @@ function Pawn({ player, isCurrent }: { player: PlayerState; isCurrent: boolean }
     <span
       title={player.name}
       className={cn(
-        "pawn-token relative grid h-6 w-4 shrink-0 place-items-end rounded-t-full rounded-b-sm border border-background/70",
-        isCurrent && "animate-pawn-pop ring-2 ring-gold",
+        "pawn-token pawn-halo relative grid h-9 w-5 shrink-0 place-items-end rounded-t-full rounded-b-sm border border-background/70",
+        isCurrent && "animate-pawn-pop ring-2 ring-gold pawn-halo-active",
       )}
       style={{ backgroundColor: player.color }}
     >
-      <span className="pb-0.5 text-[0.5rem] font-black leading-none text-background">{player.number}</span>
+      <span className="pb-1 text-[0.6rem] font-black leading-none text-background">{player.number}</span>
     </span>
   );
 }

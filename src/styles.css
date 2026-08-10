@@ -234,6 +234,18 @@
     0 10px 16px -8px color-mix(in oklab, black 85%, transparent);
 }
 
+/* Bright halo ring so taller pawns read clearly against coloured tiles. */
+@utility pawn-halo {
+  outline: 2px solid color-mix(in oklab, white 85%, transparent);
+  outline-offset: 1px;
+  filter: drop-shadow(0 0 6px color-mix(in oklab, white 70%, transparent));
+}
+
+@utility pawn-halo-active {
+  outline-color: var(--gold);
+  filter: drop-shadow(0 0 10px color-mix(in oklab, var(--gold) 90%, transparent));
+}
+
 @keyframes emoji-float {
   0% { transform: translateY(0) scale(0.7); opacity: 0; }
   25% { opacity: 1; }
