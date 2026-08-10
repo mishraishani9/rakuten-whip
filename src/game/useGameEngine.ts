@@ -64,6 +64,7 @@ export function initialState(gameName: string, setup: SetupPlayer[], options: St
     currentPlayerId: players[0]?.id ?? "p1",
     turnNumber: 1,
     lastDice: null,
+    rollsThisTurn: 0,
     prevPosition: null,
     usedQuestionIds: [],
     currentQuestion: null,
