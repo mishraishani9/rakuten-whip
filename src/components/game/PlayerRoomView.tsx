@@ -132,16 +132,7 @@ export function PlayerRoomView({ code, slug }: { code: string; slug?: string }) 
             {me ? `You are ${me.name}` : "Spectating"} · turn {state.turnNumber}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            gameAudio.unlock();
-            setSoundOn((v) => !v);
-          }}
-          className="text-xs text-muted-foreground underline hover:text-foreground"
-        >
-          {soundOn ? "Sound on" : "Sound off"}
-        </button>
+        <SoundControls onEnabledChange={setSoundOn} />
       </header>
 
       <div className="relative min-h-0 flex-1">
@@ -154,6 +145,7 @@ export function PlayerRoomView({ code, slug }: { code: string; slug?: string }) 
             timeRemaining={state.timeRemaining}
             timerTotal={GAME_SETTINGS.QUESTION_TIME_SECONDS}
             timerActive={state.phase === "QUESTION_ACTIVE"}
+            gameName={state.gameName}
           />
         </BoardViewport>
 
