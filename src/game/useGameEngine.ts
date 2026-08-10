@@ -464,6 +464,7 @@ export function useGameEngine() {
         currentSquareDifficulty: null,
         phase: "PLAYER_TURN",
         turnNumber: prev.turnNumber + 1,
+        rollsThisTurn: 0,
         timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
         notice: null,
       };
@@ -512,6 +513,7 @@ export function useGameEngine() {
         phase: "MOVING",
         notice: null,
         prevPosition: player.position,
+        rollsThisTurn: (prev.rollsThisTurn ?? 0) + 1,
         players: prev.players.map((p) =>
           p.id === player.id
             ? {
@@ -624,7 +626,8 @@ export function useGameEngine() {
     if (!current) return;
     const question = current.currentQuestion;
     const wasCorrect = question && current.selectedOption === question.correct_option && !current.wasTimeout;
-    if (wasCorrect) {
+    // A correct answer earns one extra roll, but never more than 2 rolls per turn.
+    if (wasCorrect && (current.rollsThisTurn ?? 0) < GAME_SETTINGS.MAX_ROLLS_PER_TURN) {
       update((prev) => ({
         ...prev,
         phase: "PLAYER_TURN",
