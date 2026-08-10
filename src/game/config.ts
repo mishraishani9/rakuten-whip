@@ -17,6 +17,8 @@ export const GAME_SETTINGS = {
   DEFAULT_PLAYERS: 4,
   MAX_ROLLBACKS: 5,
   MAX_BONUS_CHAIN: 1,
+  /** A player never gets more than this many dice rolls in one turn. */
+  MAX_ROLLS_PER_TURN: 2,
   BOARD_SIZE: 24,
   DEFAULT_BOARD_SIZE: 24,
   JAIL_RELEASE_ROLLS: [1, 6],

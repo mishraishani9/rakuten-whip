@@ -18,7 +18,9 @@ type Layer = {
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+let music: GainNode | null = null;
 let enabled = true;
+let musicVolume = 0.7;
 let current: TrackName | null = null;
 let unlocked = false;
 
@@ -56,14 +58,25 @@ function audio(): AudioContext | null {
     master = ctx.createGain();
     master.gain.value = 0.9;
     master.connect(ctx.destination);
+    music = ctx.createGain();
+    music.gain.value = musicVolume;
+    music.connect(master);
   }
   if (ctx.state === "suspended") void ctx.resume();
   return ctx;
 }
 
-function tone(freq: number, duration: number, volume: number, type: OscillatorType = "sine", when = 0) {
+function tone(
+  freq: number,
+  duration: number,
+  volume: number,
+  type: OscillatorType = "sine",
+  when = 0,
+  bus: "fx" | "music" = "fx",
+) {
   const c = audio();
   if (!c || !master || !enabled) return;
+  const out = bus === "music" ? (music ?? master) : master;
   const start = c.currentTime + when;
   const osc = c.createOscillator();
   const gain = c.createGain();
@@ -72,7 +85,7 @@ function tone(freq: number, duration: number, volume: number, type: OscillatorTy
   gain.gain.setValueAtTime(0.0001, start);
   gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), start + 0.01);
   gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-  osc.connect(gain).connect(master);
+  osc.connect(gain).connect(out);
   osc.start(start);
   osc.stop(start + duration + 0.05);
 }
@@ -88,11 +101,11 @@ function runTrack(name: TrackName) {
   const beat = () => {
     if (!enabled) return;
     const bass = pattern.bass[layer.step % pattern.bass.length]!;
-    tone(bass, pattern.beatMs / 1400, pattern.gain, "triangle");
-    tone(bass / 2, pattern.beatMs / 1100, pattern.gain * 0.6, "sine");
+    tone(bass, pattern.beatMs / 1400, pattern.gain, "triangle", 0, "music");
+    tone(bass / 2, pattern.beatMs / 1100, pattern.gain * 0.6, "sine", 0, "music");
     if (layer.step % 2 === 0) {
       const lead = pattern.lead[(layer.step / 2) % pattern.lead.length]!;
-      tone(lead, 0.24, pattern.gain * 0.35, "sawtooth");
+      tone(lead, 0.24, pattern.gain * 0.35, "sawtooth", 0, "music");
     }
     layer.step++;
   };
@@ -102,6 +115,15 @@ function runTrack(name: TrackName) {
 
 export const gameAudio = {
   isEnabled: () => enabled,
+
+  /** Background-music volume, 0..1 (does not affect ticks or answer sounds). */
+  getVolume: () => musicVolume,
+
+  setVolume(next: number) {
+    musicVolume = Math.min(1, Math.max(0, next));
+    audio();
+    if (music) music.gain.value = musicVolume;
+  },
 
   /** Browsers block audio until the first gesture: call this from any click/tap. */
   unlock() {

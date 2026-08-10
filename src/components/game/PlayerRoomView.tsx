@@ -5,6 +5,7 @@ import { BoardLegend } from "@/components/game/BoardLegend";
 import { BoardViewport } from "@/components/game/BoardViewport";
 import { DiceRoller } from "@/components/game/DiceRoller";
 import { GameBoard } from "@/components/game/GameBoard";
+import { SoundControls } from "@/components/game/SoundControls";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { RoomChat } from "@/components/game/RoomChat";
 import { Button } from "@/components/ui/button";
@@ -132,16 +133,7 @@ export function PlayerRoomView({ code, slug }: { code: string; slug?: string }) 
             {me ? `You are ${me.name}` : "Spectating"} · turn {state.turnNumber}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            gameAudio.unlock();
-            setSoundOn((v) => !v);
-          }}
-          className="text-xs text-muted-foreground underline hover:text-foreground"
-        >
-          {soundOn ? "Sound on" : "Sound off"}
-        </button>
+        <SoundControls onEnabledChange={setSoundOn} />
       </header>
 
       <div className="relative min-h-0 flex-1">
@@ -154,6 +146,7 @@ export function PlayerRoomView({ code, slug }: { code: string; slug?: string }) 
             timeRemaining={state.timeRemaining}
             timerTotal={GAME_SETTINGS.QUESTION_TIME_SECONDS}
             timerActive={state.phase === "QUESTION_ACTIVE"}
+            gameName={state.gameName}
           />
         </BoardViewport>
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { SoundControls } from "@/components/game/SoundControls";
 import { useAuth, signInWithGoogle, signOutEverywhere } from "@/hooks/useAuth";
 import { loadStoredState } from "@/game/useGameEngine";
 import { gameAudio } from "@/game/audio";
@@ -87,6 +88,13 @@ function Home() {
         onClick={() => setSplash(false)}
       >
         <span className="smoke-veil pointer-events-none absolute inset-0" aria-hidden="true" />
+        <div
+          className="absolute right-4 top-4 z-10"
+          onClick={(e) => e.stopPropagation()}
+          role="presentation"
+        >
+          <SoundControls />
+        </div>
         <div className="relative flex h-72 w-72 items-center justify-center rounded-full border-4 border-gold/70 bg-primary/20 shadow-gold-glow animate-glow-pulse">
           <div className="absolute inset-4 rounded-full border border-accent/60" />
           <div className="text-center">
@@ -112,6 +120,7 @@ function Home() {
         <span className="uppercase tracking-[0.25em] text-muted-foreground">
           {auth.loading ? "…" : auth.user ? `${auth.displayName} · ${auth.roles.join(", ")}` : "Guest · player"}
         </span>
+        <SoundControls />
         {auth.user ? (
           <button
             type="button"

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 
 import { Button } from "@/components/ui/button";
+import { SoundControls } from "@/components/game/SoundControls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -83,9 +84,12 @@ export function SetupScreen({
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-10">
-      <Link to="/" className="text-xs uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground">
-        ← Main menu
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link to="/" className="text-xs uppercase tracking-[0.25em] text-muted-foreground hover:text-foreground">
+          ← Main menu
+        </Link>
+        <SoundControls />
+      </div>
       <h1 className="mt-3 font-display text-4xl font-black uppercase tracking-tight text-gradient-gold">
         New game
       </h1>

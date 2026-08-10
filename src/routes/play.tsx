@@ -10,6 +10,7 @@ import { RoomChat } from "@/components/game/RoomChat";
 import { RulesPanels } from "@/components/game/RulesPanels";
 import { SetupScreen } from "@/components/game/SetupScreen";
 import { ShareRoom } from "@/components/game/ShareRoom";
+import { SoundControls } from "@/components/game/SoundControls";
 import { Button } from "@/components/ui/button";
 import { gameAudio } from "@/game/audio";
 import { GAME_SETTINGS } from "@/game/config";
@@ -123,8 +124,11 @@ function PlayPage() {
     <div className="flex h-screen flex-col overflow-hidden">
       <header className="border-b border-border bg-card/50 backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
-          <Link to="/" className="text-gradient-gold font-display text-lg font-black uppercase tracking-[0.2em]">
-            WHIP
+          <Link
+            to="/"
+            className="text-gradient-gold font-display text-sm font-black uppercase tracking-[0.18em] sm:text-base"
+          >
+            World &amp; Highlights in Intellectual Property
           </Link>
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             <label className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground">
@@ -136,16 +140,7 @@ function PlayPage() {
               />
               Presenter mode
             </label>
-            <button
-              type="button"
-              onClick={() => {
-                gameAudio.unlock();
-                setSoundOn((v) => !v);
-              }}
-              className="text-muted-foreground underline hover:text-foreground"
-            >
-              {soundOn ? "Sound on" : "Sound off"}
-            </button>
+            <SoundControls onEnabledChange={setSoundOn} />
             <Link to="/history" className="text-muted-foreground underline hover:text-foreground">
               History
             </Link>
@@ -178,6 +173,7 @@ function PlayPage() {
               timeRemaining={state.timeRemaining}
               timerTotal={GAME_SETTINGS.QUESTION_TIME_SECONDS}
               timerActive={state.phase === "QUESTION_ACTIVE"}
+              gameName={state.gameName}
             />
           </BoardViewport>
 

@@ -109,6 +109,7 @@ export function GameBoard({
   timeRemaining,
   timerTotal,
   timerActive,
+  gameName,
 }: {
   players: PlayerState[];
   currentPlayerId: string;
@@ -117,6 +118,8 @@ export function GameBoard({
   timeRemaining?: number;
   timerTotal?: number;
   timerActive?: boolean;
+  /** Session name shown at the centre of the board. */
+  gameName?: string;
 }) {
   const { cells, side } = gridCells(board.length);
   const inner = Math.max(2, side - 1);
@@ -168,11 +171,8 @@ export function GameBoard({
           className="relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-border bg-board p-4 text-center"
         >
           <span className="ip-graffiti pointer-events-none absolute inset-0" aria-hidden="true" />
-          <p className="text-gradient-gold font-display text-3xl font-black uppercase tracking-[0.22em] sm:text-4xl">
-            WHIP
-          </p>
-          <p className="mt-1 max-w-[22rem] text-[0.68rem] uppercase tracking-[0.22em] text-muted-foreground">
-            World &amp; Highlights in Intellectual Property
+          <p className="text-gradient-gold font-display max-w-[22rem] text-2xl font-black uppercase tracking-[0.18em] sm:text-3xl">
+            {gameName?.trim() || "IP Session"}
           </p>
 
           {timerActive && (

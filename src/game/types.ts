@@ -64,6 +64,8 @@ export type GameState = {
   currentPlayerId: string;
   turnNumber: number;
   lastDice: number | null;
+  /** Dice rolls the current player has taken this turn (capped at 2 by the engine). */
+  rollsThisTurn?: number;
   /** Position of the current player before the latest dice roll (recede target). */
   prevPosition: number | null;
   usedQuestionIds: string[];
