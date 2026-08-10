@@ -5,6 +5,7 @@ import { BoardLegend } from "@/components/game/BoardLegend";
 import { BoardViewport } from "@/components/game/BoardViewport";
 import { DiceRoller } from "@/components/game/DiceRoller";
 import { GameBoard } from "@/components/game/GameBoard";
+import { SoundControls } from "@/components/game/SoundControls";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { RoomChat } from "@/components/game/RoomChat";
 import { Button } from "@/components/ui/button";
