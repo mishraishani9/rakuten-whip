@@ -25,6 +25,8 @@ export const GAME_SETTINGS = {
   CLUB_MISS_TURNS: 1,
   BAR_MISS_TURNS: 2,
   REVEAL_DELAY_MS: 900,
+  /** How long a rules popup (club / bar / jail / event) stays on screen. */
+  RULE_POPUP_SECONDS: 15,
 } as const;
 
 /** Valid board sizes: 4 corners + equal number of houses per side. */

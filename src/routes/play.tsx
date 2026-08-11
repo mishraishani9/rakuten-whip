@@ -7,6 +7,7 @@ import { GameBoard } from "@/components/game/GameBoard";
 import { PresenterPanel } from "@/components/game/PresenterPanel";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { RoomChat } from "@/components/game/RoomChat";
+import { RulePopup } from "@/components/game/RulePopup";
 import { RulesPanels } from "@/components/game/RulesPanels";
 import { SetupScreen } from "@/components/game/SetupScreen";
 import { ShareRoom } from "@/components/game/ShareRoom";
@@ -36,13 +37,6 @@ export const Route = createFileRoute("/play")({
   }),
   component: PlayPage,
 });
-
-const TONE_CLASS: Record<string, string> = {
-  info: "border-border bg-secondary/70",
-  success: "border-success/60 bg-success/15",
-  danger: "border-destructive/60 bg-destructive/15",
-  warning: "border-gold/70 bg-gold/15",
-};
 
 function PlayPage() {
   const engine = useGameEngine();
@@ -198,31 +192,23 @@ function PlayPage() {
             </div>
           )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 p-3">
-            {state.notice && (
-              <div
-                className={cn(
-                  "pointer-events-auto w-full max-w-xl rounded-xl border p-3 backdrop-blur",
-                  TONE_CLASS[state.notice.tone],
-                )}
-              >
-                <p className="font-display text-sm font-black uppercase tracking-wide text-foreground">
-                  {state.notice.title}
-                </p>
-                {state.notice.body && (
-                  <p className="mt-1 text-xs text-muted-foreground">{state.notice.body}</p>
-                )}
-                {(state.phase === "SPECIAL_EVENT" || state.phase === "NO_QUESTION") && (
-                  <Button size="sm" className="mt-2" onClick={engine.continuePlay}>
-                    Continue to next player
-                  </Button>
-                )}
-              </div>
-            )}
+          {state.notice && (
+            <RulePopup
+              title={state.notice.title}
+              body={state.notice.body}
+              tone={state.notice.tone}
+              showContinue={state.phase === "SPECIAL_EVENT" || state.phase === "NO_QUESTION"}
+              onContinue={engine.continuePlay}
+              onDismiss={engine.dismissNotice}
+            />
+          )}
 
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 p-3">
             {state.phase === "PAUSED" && !scoreboardOpen && (
               <div className="pointer-events-auto rounded-xl border border-border bg-secondary/80 p-3 backdrop-blur">
-                <p className="font-display text-sm font-black uppercase text-foreground">Game paused</p>
+                <p className="font-display text-sm font-black uppercase text-foreground">
+                  Game paused
+                </p>
                 <Button size="sm" className="mt-2" onClick={engine.resume}>
                   Resume game
                 </Button>
@@ -237,7 +223,9 @@ function PlayPage() {
                 <ol className="mt-2 space-y-1 text-sm">
                   {ranked.map((p, i) => (
                     <li key={p.id} className="flex items-center gap-2 text-foreground">
-                      <span className="w-5 font-display font-black text-muted-foreground">{i + 1}</span>
+                      <span className="w-5 font-display font-black text-muted-foreground">
+                        {i + 1}
+                      </span>
                       <span className="h-3 w-3 rounded-full" style={{ backgroundColor: p.color }} />
                       <span className="flex-1 truncate">{p.name}</span>
                       <span className="tabular-nums text-muted-foreground">
@@ -249,7 +237,9 @@ function PlayPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {state.phase === "WINNER" && (
                     <>
-                      <Button onClick={() => void engine.endGame()}>End game &amp; save results</Button>
+                      <Button onClick={() => void engine.endGame()}>
+                        End game &amp; save results
+                      </Button>
                       <Button variant="secondary" onClick={engine.continuePlay}>
                         Keep playing
                       </Button>

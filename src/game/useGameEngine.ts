@@ -48,7 +48,11 @@ function makePlayer(p: SetupPlayer): PlayerState {
   };
 }
 
-export function initialState(gameName: string, setup: SetupPlayer[], options: StartOptions = {}): GameState {
+export function initialState(
+  gameName: string,
+  setup: SetupPlayer[],
+  options: StartOptions = {},
+): GameState {
   const players = setup.map(makePlayer);
   const boardSize = options.boardSize ?? GAME_SETTINGS.DEFAULT_BOARD_SIZE;
   const board = buildBoard(boardSize);
@@ -98,7 +102,10 @@ export function storeState(state: GameState | null) {
   else window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
 }
 
-function nextEligible(state: GameState, fromId: string): { players: PlayerState[]; nextId: string } {
+function nextEligible(
+  state: GameState,
+  fromId: string,
+): { players: PlayerState[]; nextId: string } {
   const players = state.players.map((p) => ({ ...p }));
   const startIndex = players.findIndex((p) => p.id === fromId);
   for (let step = 1; step <= players.length; step++) {
@@ -120,11 +127,15 @@ export function useGameEngine() {
   const [undoCount, setUndoCount] = useState(0);
   const stateRef = useRef<GameState | null>(null);
   stateRef.current = state;
+  /** Authoritative set of question ids already served in this session. */
+  const usedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     loadQuestionBank()
       .then(setBank)
-      .catch((error: unknown) => setBankError(error instanceof Error ? error.message : "Question bank unavailable"));
+      .catch((error: unknown) =>
+        setBankError(error instanceof Error ? error.message : "Question bank unavailable"),
+      );
   }, []);
 
   useEffect(() => {
@@ -143,24 +154,28 @@ export function useGameEngine() {
     setUndoCount(historyRef.current.length);
   }, []);
 
-  const safe = useCallback(async (action: () => Promise<void>) => {
-    try {
-      await action();
-      update((prev) => (prev.saveError ? { ...prev, saveError: null } : prev));
-    } catch {
-      update((prev) => ({
-        ...prev,
-        saveError:
-          "Your current game is still active, but saving to game history is temporarily unavailable.",
-      }));
-    }
-  }, [update]);
+  const safe = useCallback(
+    async (action: () => Promise<void>) => {
+      try {
+        await action();
+        update((prev) => (prev.saveError ? { ...prev, saveError: null } : prev));
+      } catch {
+        update((prev) => ({
+          ...prev,
+          saveError:
+            "Your current game is still active, but saving to game history is temporarily unavailable.",
+        }));
+      }
+    },
+    [update],
+  );
 
   /** Begin a game: creates the backend records but never blocks gameplay. */
   const startGame = useCallback(
     async (gameName: string, setup: SetupPlayer[], options: StartOptions = {}) => {
       const fresh = initialState(gameName, setup, options);
       historyRef.current = [];
+      usedIdsRef.current = new Set();
       setUndoCount(0);
       setState(fresh);
       try {
@@ -191,7 +206,10 @@ export function useGameEngine() {
 
   const resumeStored = useCallback(() => {
     const stored = loadStoredState();
-    if (stored) setState({ ...stored, phase: stored.phase === "PAUSED" ? "PAUSED" : stored.phase });
+    if (stored) {
+      usedIdsRef.current = new Set(stored.usedQuestionIds);
+      setState({ ...stored, phase: stored.phase === "PAUSED" ? "PAUSED" : stored.phase });
+    }
     return stored;
   }, []);
 
@@ -212,35 +230,44 @@ export function useGameEngine() {
   /** Presents the question for a question square, or the no-question fallback. */
   const presentQuestion = useCallback(
     (theme: BoardTheme, difficulty: Difficulty) => {
-      update((prev) => {
-        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds, undefined, prev.goldenFirst);
-        if (!question) {
-          return {
-            ...prev,
-            phase: "NO_QUESTION",
-            currentQuestion: null,
-            currentSquareTheme: theme,
-            currentSquareDifficulty: difficulty,
-            notice: {
-              title: "No unused questions remain for this category.",
-              body: `${theme} · ${difficulty}`,
-              tone: "warning",
-            },
-          };
-        }
-        return {
+      const current = stateRef.current;
+      const usedIds = [...new Set([...(current?.usedQuestionIds ?? []), ...usedIdsRef.current])];
+      const question = pickQuestion(
+        bank,
+        theme,
+        difficulty,
+        usedIds,
+        undefined,
+        current?.goldenFirst ?? false,
+      );
+      if (!question) {
+        update((prev) => ({
           ...prev,
-          phase: "QUESTION_ACTIVE",
-          currentQuestion: question,
+          phase: "NO_QUESTION",
+          currentQuestion: null,
           currentSquareTheme: theme,
           currentSquareDifficulty: difficulty,
-          selectedOption: null,
-          wasTimeout: false,
-          timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
-          usedQuestionIds: [...prev.usedQuestionIds, question.record_id],
-          notice: null,
-        };
-      });
+          notice: {
+            title: "No unused questions remain for this category.",
+            body: `${theme} · ${difficulty}`,
+            tone: "warning",
+          },
+        }));
+        return;
+      }
+      usedIdsRef.current.add(question.record_id);
+      update((prev) => ({
+        ...prev,
+        phase: "QUESTION_ACTIVE",
+        currentQuestion: question,
+        currentSquareTheme: theme,
+        currentSquareDifficulty: difficulty,
+        selectedOption: null,
+        wasTimeout: false,
+        timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
+        usedQuestionIds: [...new Set([...prev.usedQuestionIds, question.record_id])],
+        notice: null,
+      }));
       log({ eventType: "QUESTION", theme, difficulty });
     },
     [bank, log, update],
@@ -297,7 +324,10 @@ export function useGameEngine() {
               declareWinner(playerId);
               return;
             }
-            if (bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN && squareAt(landed, board).type === "bonus") {
+            if (
+              bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN &&
+              squareAt(landed, board).type === "bonus"
+            ) {
               update((prev) => ({
                 ...prev,
                 phase: "PLAYER_TURN",
@@ -383,29 +413,49 @@ export function useGameEngine() {
             if (!current || current.phase === "PAUSED") return;
             update((prev) => ({
               ...prev,
-              players: prev.players.map((p) => (p.id === playerId ? { ...p, position: target } : p)),
+              players: prev.players.map((p) =>
+                p.id === playerId ? { ...p, position: target } : p,
+              ),
             }));
             resolveLanding(playerId, target, dice, bonusChain + 1);
           }, 1200);
           return;
         }
         case "club":
-          applyPlayer((p) => ({ ...p, club: p.club + 1, missTurns: p.missTurns + GAME_SETTINGS.CLUB_MISS_TURNS }));
+          applyPlayer((p) => ({
+            ...p,
+            club: p.club + 1,
+            missTurns: p.missTurns + GAME_SETTINGS.CLUB_MISS_TURNS,
+          }));
           log({ eventType: "CLUB", position });
           update((prev) => ({
             ...prev,
             phase: "SPECIAL_EVENT",
-            notice: { title: "You are in CLUB. Miss your next turn.", tone: "warning" },
+            notice: {
+              title: "CLUB — you miss your next turn.",
+              body: "Networking at the IP club: your pawn stays put and your next turn is skipped. Play passes to the next player automatically.",
+              tone: "warning",
+            },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "bar":
-          applyPlayer((p) => ({ ...p, bar: p.bar + 1, missTurns: p.missTurns + GAME_SETTINGS.BAR_MISS_TURNS }));
+          applyPlayer((p) => ({
+            ...p,
+            bar: p.bar + 1,
+            missTurns: p.missTurns + GAME_SETTINGS.BAR_MISS_TURNS,
+          }));
           log({ eventType: "BAR", position });
           update((prev) => ({
             ...prev,
             phase: "SPECIAL_EVENT",
-            notice: { title: "You are in BAR. Miss your next two turns.", tone: "warning" },
+            notice: {
+              title: `BAR — you miss your next ${GAME_SETTINGS.BAR_MISS_TURNS} turn(s).`,
+              body: "Too long at the bar: your turn ends now and your next turn is skipped automatically. Play passes to the next player.",
+              tone: "warning",
+            },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "jail":
           applyPlayer((p) => ({ ...p, jail: p.jail + 1, inJail: true }));
@@ -414,11 +464,12 @@ export function useGameEngine() {
             ...prev,
             phase: "SPECIAL_EVENT",
             notice: {
-              title: "You are in JAIL.",
+              title: "JAIL — your turn ends here.",
               body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} on your turn to escape.`,
               tone: "danger",
             },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "start":
           update((prev) => ({
@@ -441,7 +492,9 @@ export function useGameEngine() {
       update((prev) => ({
         ...prev,
         phase: "WINNER",
-        winnerIds: prev.winnerIds.includes(playerId) ? prev.winnerIds : [...prev.winnerIds, playerId],
+        winnerIds: prev.winnerIds.includes(playerId)
+          ? prev.winnerIds
+          : [...prev.winnerIds, playerId],
         currentQuestion: null,
         notice: null,
       }));
@@ -471,6 +524,22 @@ export function useGameEngine() {
     });
   }, [update]);
 
+  /**
+   * Club / Bar / Jail hand the turn over on their own once the rules popup has
+   * been on screen long enough for everyone to read it.
+   */
+  const autoAdvanceAfterRule = useCallback(
+    (playerId: string) => {
+      window.setTimeout(() => {
+        const current = stateRef.current;
+        if (!current || current.phase !== "SPECIAL_EVENT") return;
+        if (current.currentPlayerId !== playerId) return;
+        endTurn();
+      }, GAME_SETTINGS.RULE_POPUP_SECONDS * 1000);
+    },
+    [endTurn],
+  );
+
   const move = useCallback(
     (dice: number) => {
       const current = stateRef.current;
@@ -491,10 +560,20 @@ export function useGameEngine() {
           ),
           notice: escaped
             ? { title: "You escaped Jail!", tone: "success" }
-            : { title: "Still in Jail.", body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`, tone: "danger" },
+            : {
+                title: "Still in Jail.",
+                body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`,
+                tone: "danger",
+              },
         }));
-        log({ eventType: "JAIL", diceValue: dice, playerDbId: player.dbId, position: player.position });
-        window.setTimeout(() => endTurn(), 1400);
+        log({
+          eventType: "JAIL",
+          diceValue: dice,
+          playerDbId: player.dbId,
+          position: player.position,
+        });
+        if (escaped) window.setTimeout(() => endTurn(), 1400);
+        else autoAdvanceAfterRule(player.id);
         return;
       }
 
@@ -533,7 +612,7 @@ export function useGameEngine() {
         else resolveLanding(player.id, landed, dice, 0);
       }, 450);
     },
-    [declareWinner, endTurn, log, pushHistory, resolveLanding, update],
+    [autoAdvanceAfterRule, declareWinner, endTurn, log, pushHistory, resolveLanding, update],
   );
 
   const selectAnswer = useCallback(
@@ -578,7 +657,9 @@ export function useGameEngine() {
         notice: isCorrect
           ? { title: "Correct! You get another turn.", tone: "success" }
           : {
-              title: isTimeout ? "Time up! Your pawn moves back." : "Incorrect! Your pawn moves back.",
+              title: isTimeout
+                ? "Time up! Your pawn moves back."
+                : "Incorrect! Your pawn moves back.",
               body:
                 recedeTo !== null
                   ? `The pawn returns to where it stood before the dice roll (house ${recedeTo + 1}). Turn passes to the next player.`
@@ -625,7 +706,8 @@ export function useGameEngine() {
     const current = stateRef.current;
     if (!current) return;
     const question = current.currentQuestion;
-    const wasCorrect = question && current.selectedOption === question.correct_option && !current.wasTimeout;
+    const wasCorrect =
+      question && current.selectedOption === question.correct_option && !current.wasTimeout;
     // A correct answer earns one extra roll, but never more than 2 rolls per turn.
     if (wasCorrect && (current.rollsThisTurn ?? 0) < GAME_SETTINGS.MAX_ROLLS_PER_TURN) {
       update((prev) => ({
@@ -659,7 +741,9 @@ export function useGameEngine() {
 
   const tick = useCallback(() => {
     update((prev) =>
-      prev.phase === "QUESTION_ACTIVE" ? { ...prev, timeRemaining: Math.max(0, prev.timeRemaining - 1) } : prev,
+      prev.phase === "QUESTION_ACTIVE"
+        ? { ...prev, timeRemaining: Math.max(0, prev.timeRemaining - 1) }
+        : prev,
     );
   }, [update]);
 
@@ -669,25 +753,31 @@ export function useGameEngine() {
     const discarded = current.currentQuestion?.record_id;
     // The discarded question is released back into the pool.
     const remaining = current.usedQuestionIds.filter((id) => id !== discarded);
+    if (discarded) usedIdsRef.current.delete(discarded);
     const replacement = pickQuestion(
       bank,
       current.currentSquareTheme,
       current.currentSquareDifficulty,
-      remaining,
+      [...new Set([...remaining, ...usedIdsRef.current])],
       discarded,
     );
     if (!replacement) {
+      if (discarded) usedIdsRef.current.add(discarded);
       update((prev) => ({
         ...prev,
-        notice: { title: "No other unused question is available for this category.", tone: "warning" },
+        notice: {
+          title: "No other unused question is available for this category.",
+          tone: "warning",
+        },
       }));
       return;
     }
+    usedIdsRef.current.add(replacement.record_id);
     update((prev) => ({
       ...prev,
       phase: "QUESTION_ACTIVE",
       currentQuestion: replacement,
-      usedQuestionIds: [...remaining, replacement.record_id],
+      usedQuestionIds: [...new Set([...remaining, replacement.record_id])],
       selectedOption: null,
       wasTimeout: false,
       timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
@@ -706,6 +796,7 @@ export function useGameEngine() {
   );
 
   const resetUsedQuestions = useCallback(() => {
+    usedIdsRef.current = new Set();
     update((prev) => ({
       ...prev,
       usedQuestionIds: [],
@@ -731,7 +822,11 @@ export function useGameEngine() {
       update((prev) => ({
         ...prev,
         players: prev.players.map((p) => (p.id === playerId ? { ...p, position } : p)),
-        notice: { title: "Administrative move applied.", body: `Player moved to position ${position}.`, tone: "info" },
+        notice: {
+          title: "Administrative move applied.",
+          body: `Player moved to position ${position}.`,
+          tone: "info",
+        },
       }));
       log({ eventType: "MANUAL_MOVE", position, playerDbId: player?.dbId });
     },
@@ -776,7 +871,10 @@ export function useGameEngine() {
           selectedOption: wasCurrent ? null : prev.selectedOption,
           phase: wasCurrent ? "PLAYER_TURN" : prev.phase,
           winnerIds: prev.winnerIds.filter((id) => id !== playerId),
-          notice: { title: `${removed?.name ?? "Player"} was removed from the game.`, tone: "info" },
+          notice: {
+            title: `${removed?.name ?? "Player"} was removed from the game.`,
+            tone: "info",
+          },
         };
       });
       log({ eventType: "MANUAL_MOVE" });
@@ -800,6 +898,10 @@ export function useGameEngine() {
     endTurn();
   }, [endTurn, update]);
 
+  const dismissNotice = useCallback(() => {
+    update((prev) => (prev.notice ? { ...prev, notice: null } : prev));
+  }, [update]);
+
   const endGame = useCallback(async () => {
     const current = stateRef.current;
     if (!current) return;
@@ -816,7 +918,12 @@ export function useGameEngine() {
 
   const remainingForCurrentSquare = useMemo(() => {
     if (!state?.currentSquareTheme || !state.currentSquareDifficulty) return 0;
-    return poolFor(bank, state.currentSquareTheme, state.currentSquareDifficulty, state.usedQuestionIds).length;
+    return poolFor(
+      bank,
+      state.currentSquareTheme,
+      state.currentSquareDifficulty,
+      state.usedQuestionIds,
+    ).length;
   }, [bank, state]);
 
   const questionsRemaining = bank.length - (state?.usedQuestionIds.length ?? 0);
@@ -851,6 +958,7 @@ export function useGameEngine() {
     undo,
     endTurn,
     continuePlay,
+    dismissNotice,
     endGame,
     discard,
   };
