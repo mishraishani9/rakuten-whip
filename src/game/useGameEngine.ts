@@ -163,6 +163,7 @@ export function useGameEngine() {
     async (gameName: string, setup: SetupPlayer[], options: StartOptions = {}) => {
       const fresh = initialState(gameName, setup, options);
       historyRef.current = [];
+      usedIdsRef.current = new Set();
       setUndoCount(0);
       setState(fresh);
       try {
@@ -193,7 +194,10 @@ export function useGameEngine() {
 
   const resumeStored = useCallback(() => {
     const stored = loadStoredState();
-    if (stored) setState({ ...stored, phase: stored.phase === "PAUSED" ? "PAUSED" : stored.phase });
+    if (stored) {
+      usedIdsRef.current = new Set(stored.usedQuestionIds);
+      setState({ ...stored, phase: stored.phase === "PAUSED" ? "PAUSED" : stored.phase });
+    }
     return stored;
   }, []);
 
@@ -700,25 +704,28 @@ export function useGameEngine() {
     const discarded = current.currentQuestion?.record_id;
     // The discarded question is released back into the pool.
     const remaining = current.usedQuestionIds.filter((id) => id !== discarded);
+    if (discarded) usedIdsRef.current.delete(discarded);
     const replacement = pickQuestion(
       bank,
       current.currentSquareTheme,
       current.currentSquareDifficulty,
-      remaining,
+      [...new Set([...remaining, ...usedIdsRef.current])],
       discarded,
     );
     if (!replacement) {
+      if (discarded) usedIdsRef.current.add(discarded);
       update((prev) => ({
         ...prev,
         notice: { title: "No other unused question is available for this category.", tone: "warning" },
       }));
       return;
     }
+    usedIdsRef.current.add(replacement.record_id);
     update((prev) => ({
       ...prev,
       phase: "QUESTION_ACTIVE",
       currentQuestion: replacement,
-      usedQuestionIds: [...remaining, replacement.record_id],
+      usedQuestionIds: [...new Set([...remaining, replacement.record_id])],
       selectedOption: null,
       wasTimeout: false,
       timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
@@ -737,6 +744,7 @@ export function useGameEngine() {
   );
 
   const resetUsedQuestions = useCallback(() => {
+    usedIdsRef.current = new Set();
     update((prev) => ({
       ...prev,
       usedQuestionIds: [],
