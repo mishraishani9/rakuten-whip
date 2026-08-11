@@ -529,7 +529,8 @@ export function useGameEngine() {
             : { title: "Still in Jail.", body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`, tone: "danger" },
         }));
         log({ eventType: "JAIL", diceValue: dice, playerDbId: player.dbId, position: player.position });
-        window.setTimeout(() => endTurn(), 1400);
+        if (escaped) window.setTimeout(() => endTurn(), 1400);
+        else autoAdvanceAfterRule(player.id);
         return;
       }
 
