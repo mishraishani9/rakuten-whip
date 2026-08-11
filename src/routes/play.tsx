@@ -7,6 +7,7 @@ import { GameBoard } from "@/components/game/GameBoard";
 import { PresenterPanel } from "@/components/game/PresenterPanel";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { RoomChat } from "@/components/game/RoomChat";
+import { RulePopup } from "@/components/game/RulePopup";
 import { RulesPanels } from "@/components/game/RulesPanels";
 import { SetupScreen } from "@/components/game/SetupScreen";
 import { ShareRoom } from "@/components/game/ShareRoom";
@@ -198,28 +199,18 @@ function PlayPage() {
             </div>
           )}
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 p-3">
-            {state.notice && (
-              <div
-                className={cn(
-                  "pointer-events-auto w-full max-w-xl rounded-xl border p-3 backdrop-blur",
-                  TONE_CLASS[state.notice.tone],
-                )}
-              >
-                <p className="font-display text-sm font-black uppercase tracking-wide text-foreground">
-                  {state.notice.title}
-                </p>
-                {state.notice.body && (
-                  <p className="mt-1 text-xs text-muted-foreground">{state.notice.body}</p>
-                )}
-                {(state.phase === "SPECIAL_EVENT" || state.phase === "NO_QUESTION") && (
-                  <Button size="sm" className="mt-2" onClick={engine.continuePlay}>
-                    Continue to next player
-                  </Button>
-                )}
-              </div>
-            )}
+          {state.notice && (
+            <RulePopup
+              title={state.notice.title}
+              body={state.notice.body}
+              tone={state.notice.tone}
+              showContinue={state.phase === "SPECIAL_EVENT" || state.phase === "NO_QUESTION"}
+              onContinue={engine.continuePlay}
+              onDismiss={engine.dismissNotice}
+            />
+          )}
 
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 p-3">
             {state.phase === "PAUSED" && !scoreboardOpen && (
               <div className="pointer-events-auto rounded-xl border border-border bg-secondary/80 p-3 backdrop-blur">
                 <p className="font-display text-sm font-black uppercase text-foreground">Game paused</p>
