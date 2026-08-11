@@ -569,7 +569,7 @@ export function useGameEngine() {
         else resolveLanding(player.id, landed, dice, 0);
       }, 450);
     },
-    [declareWinner, endTurn, log, pushHistory, resolveLanding, update],
+    [autoAdvanceAfterRule, declareWinner, endTurn, log, pushHistory, resolveLanding, update],
   );
 
   const selectAnswer = useCallback(
