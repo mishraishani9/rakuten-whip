@@ -399,8 +399,13 @@ export function useGameEngine() {
           update((prev) => ({
             ...prev,
             phase: "SPECIAL_EVENT",
-            notice: { title: "You are in CLUB. Miss your next turn.", tone: "warning" },
+            notice: {
+              title: "CLUB — you miss your next turn.",
+              body: "Networking at the IP club: your pawn stays put and your next turn is skipped. Play passes to the next player automatically.",
+              tone: "warning",
+            },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "bar":
           applyPlayer((p) => ({ ...p, bar: p.bar + 1, missTurns: p.missTurns + GAME_SETTINGS.BAR_MISS_TURNS }));
@@ -408,8 +413,13 @@ export function useGameEngine() {
           update((prev) => ({
             ...prev,
             phase: "SPECIAL_EVENT",
-            notice: { title: "You are in BAR. Miss your next two turns.", tone: "warning" },
+            notice: {
+              title: `BAR — you miss your next ${GAME_SETTINGS.BAR_MISS_TURNS} turn(s).`,
+              body: "Too long at the bar: your turn ends now and your next turn is skipped automatically. Play passes to the next player.",
+              tone: "warning",
+            },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "jail":
           applyPlayer((p) => ({ ...p, jail: p.jail + 1, inJail: true }));
@@ -418,11 +428,12 @@ export function useGameEngine() {
             ...prev,
             phase: "SPECIAL_EVENT",
             notice: {
-              title: "You are in JAIL.",
+              title: "JAIL — your turn ends here.",
               body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} on your turn to escape.`,
               tone: "danger",
             },
           }));
+          autoAdvanceAfterRule(playerId);
           return;
         case "start":
           update((prev) => ({
