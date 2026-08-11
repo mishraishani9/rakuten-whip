@@ -28,7 +28,7 @@ export function RulePopup({
   onContinue: () => void;
   onDismiss: () => void;
 }) {
-  const [seconds, setSeconds] = useState(GAME_SETTINGS.RULE_POPUP_SECONDS);
+  const [seconds, setSeconds] = useState<number>(GAME_SETTINGS.RULE_POPUP_SECONDS);
 
   useEffect(() => {
     setSeconds(GAME_SETTINGS.RULE_POPUP_SECONDS);
