@@ -120,6 +120,8 @@ export function useGameEngine() {
   const [undoCount, setUndoCount] = useState(0);
   const stateRef = useRef<GameState | null>(null);
   stateRef.current = state;
+  /** Authoritative set of question ids already served in this session. */
+  const usedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     loadQuestionBank()
@@ -212,10 +214,11 @@ export function useGameEngine() {
   /** Presents the question for a question square, or the no-question fallback. */
   const presentQuestion = useCallback(
     (theme: BoardTheme, difficulty: Difficulty) => {
-      update((prev) => {
-        const question = pickQuestion(bank, theme, difficulty, prev.usedQuestionIds, undefined, prev.goldenFirst);
-        if (!question) {
-          return {
+      const current = stateRef.current;
+      const usedIds = [...new Set([...(current?.usedQuestionIds ?? []), ...usedIdsRef.current])];
+      const question = pickQuestion(bank, theme, difficulty, usedIds, undefined, current?.goldenFirst ?? false);
+      if (!question) {
+        update((prev) => ({
             ...prev,
             phase: "NO_QUESTION",
             currentQuestion: null,
@@ -226,9 +229,11 @@ export function useGameEngine() {
               body: `${theme} · ${difficulty}`,
               tone: "warning",
             },
-          };
-        }
-        return {
+        }));
+        return;
+      }
+      usedIdsRef.current.add(question.record_id);
+      update((prev) => ({
           ...prev,
           phase: "QUESTION_ACTIVE",
           currentQuestion: question,
@@ -237,10 +242,9 @@ export function useGameEngine() {
           selectedOption: null,
           wasTimeout: false,
           timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
-          usedQuestionIds: [...prev.usedQuestionIds, question.record_id],
+        usedQuestionIds: [...new Set([...prev.usedQuestionIds, question.record_id])],
           notice: null,
-        };
-      });
+      }));
       log({ eventType: "QUESTION", theme, difficulty });
     },
     [bank, log, update],
