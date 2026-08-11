@@ -475,6 +475,22 @@ export function useGameEngine() {
     });
   }, [update]);
 
+  /**
+   * Club / Bar / Jail hand the turn over on their own once the rules popup has
+   * been on screen long enough for everyone to read it.
+   */
+  const autoAdvanceAfterRule = useCallback(
+    (playerId: string) => {
+      window.setTimeout(() => {
+        const current = stateRef.current;
+        if (!current || current.phase !== "SPECIAL_EVENT") return;
+        if (current.currentPlayerId !== playerId) return;
+        endTurn();
+      }, GAME_SETTINGS.RULE_POPUP_SECONDS * 1000);
+    },
+    [endTurn],
+  );
+
   const move = useCallback(
     (dice: number) => {
       const current = stateRef.current;
