@@ -46,9 +46,14 @@ export function RulePopup({
       <div
         role="alertdialog"
         aria-live="assertive"
-        className={cn("w-full max-w-lg rounded-2xl border-2 p-6 text-center shadow-2xl", TONE[tone])}
+        className={cn(
+          "w-full max-w-lg rounded-2xl border-2 p-6 text-center shadow-2xl",
+          TONE[tone],
+        )}
       >
-        <p className="font-display text-2xl font-black uppercase tracking-wide text-foreground">{title}</p>
+        <p className="font-display text-2xl font-black uppercase tracking-wide text-foreground">
+          {title}
+        </p>
         {body && <p className="mt-3 text-sm text-muted-foreground">{body}</p>}
         <div className="mt-5 flex items-center justify-center gap-3">
           {showContinue && (

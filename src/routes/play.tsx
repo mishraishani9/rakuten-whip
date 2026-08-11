@@ -38,7 +38,6 @@ export const Route = createFileRoute("/play")({
   component: PlayPage,
 });
 
-
 function PlayPage() {
   const engine = useGameEngine();
   const auth = useAuth();
@@ -207,7 +206,9 @@ function PlayPage() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col items-center gap-2 p-3">
             {state.phase === "PAUSED" && !scoreboardOpen && (
               <div className="pointer-events-auto rounded-xl border border-border bg-secondary/80 p-3 backdrop-blur">
-                <p className="font-display text-sm font-black uppercase text-foreground">Game paused</p>
+                <p className="font-display text-sm font-black uppercase text-foreground">
+                  Game paused
+                </p>
                 <Button size="sm" className="mt-2" onClick={engine.resume}>
                   Resume game
                 </Button>
@@ -222,7 +223,9 @@ function PlayPage() {
                 <ol className="mt-2 space-y-1 text-sm">
                   {ranked.map((p, i) => (
                     <li key={p.id} className="flex items-center gap-2 text-foreground">
-                      <span className="w-5 font-display font-black text-muted-foreground">{i + 1}</span>
+                      <span className="w-5 font-display font-black text-muted-foreground">
+                        {i + 1}
+                      </span>
                       <span className="h-3 w-3 rounded-full" style={{ backgroundColor: p.color }} />
                       <span className="flex-1 truncate">{p.name}</span>
                       <span className="tabular-nums text-muted-foreground">
@@ -234,7 +237,9 @@ function PlayPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {state.phase === "WINNER" && (
                     <>
-                      <Button onClick={() => void engine.endGame()}>End game &amp; save results</Button>
+                      <Button onClick={() => void engine.endGame()}>
+                        End game &amp; save results
+                      </Button>
                       <Button variant="secondary" onClick={engine.continuePlay}>
                         Keep playing
                       </Button>
