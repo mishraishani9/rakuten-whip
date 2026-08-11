@@ -38,12 +38,6 @@ export const Route = createFileRoute("/play")({
   component: PlayPage,
 });
 
-const TONE_CLASS: Record<string, string> = {
-  info: "border-border bg-secondary/70",
-  success: "border-success/60 bg-success/15",
-  danger: "border-destructive/60 bg-destructive/15",
-  warning: "border-gold/70 bg-gold/15",
-};
 
 function PlayPage() {
   const engine = useGameEngine();
