@@ -840,6 +840,10 @@ export function useGameEngine() {
     endTurn();
   }, [endTurn, update]);
 
+  const dismissNotice = useCallback(() => {
+    update((prev) => (prev.notice ? { ...prev, notice: null } : prev));
+  }, [update]);
+
   const endGame = useCallback(async () => {
     const current = stateRef.current;
     if (!current) return;
@@ -891,6 +895,7 @@ export function useGameEngine() {
     undo,
     endTurn,
     continuePlay,
+    dismissNotice,
     endGame,
     discard,
   };
