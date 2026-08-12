@@ -277,7 +277,18 @@ function AuditPage() {
                 <span className="rounded-full border border-border px-2 py-0.5">{q.record_type}</span>
                 <span className="rounded-full border border-border px-2 py-0.5">{q.theme}</span>
                 <span className="rounded-full border border-border px-2 py-0.5">{q.difficulty}</span>
+                {q.under_review && (
+                  <span className="rounded-full border border-destructive px-2 py-0.5 text-destructive">
+                    ⚑ In review — hidden from gameplay
+                  </span>
+                )}
               </div>
+              {q.under_review && q.flag_reason && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Reason: {q.flag_reason}
+                  {q.flagged_at ? ` · flagged ${new Date(q.flagged_at).toLocaleString()}` : ""}
+                </p>
+              )}
 
               {isEditing ? (
                 <div className="mt-3 space-y-2">
@@ -331,13 +342,21 @@ function AuditPage() {
                   </ul>
                   <div className="mt-3 flex gap-2">
                     <Button size="sm" variant="secondary" onClick={() => setEditing(q)}>
-                      Edit
+                      Rephrase
                     </Button>
-                    {auth.isAdmin && (
-                      <Button size="sm" variant="ghost" onClick={() => void remove(q.record_id)}>
-                        Delete
+                    {q.under_review && (
+                      <Button size="sm" onClick={() => void approve(q.record_id)}>
+                        Approve back into gameplay
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => void remove(q.record_id)}
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </>
               )}
