@@ -18,6 +18,7 @@ import { GAME_SETTINGS } from "@/game/config";
 import { loadStoredState, useGameEngine } from "@/game/useGameEngine";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoomHost } from "@/hooks/useRoomHost";
+import { flagQuestion } from "@/services/questionService";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Play WHIP — Presenter-Led IP Quiz Board Game";
@@ -47,6 +48,19 @@ function PlayPage() {
   const [scoreboardOpen, setScoreboardOpen] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const [presenterMode, setPresenterMode] = useState(false);
+  const [flagNote, setFlagNote] = useState<string | null>(null);
+
+  /** Staff can flag a broken question mid-game; it leaves the playable bank. */
+  const flagCurrentQuestion = useCallback(() => {
+    const question = engine.state?.currentQuestion;
+    if (!question) return;
+    const reason = window.prompt("What is wrong with this question?", "Needs rephrasing");
+    if (reason === null) return;
+    void flagQuestion(question.record_id, reason.trim() || "Flagged for review", auth.user?.id)
+      .then(() => setFlagNote(`${question.record_id} sent to the audit queue.`))
+      .catch(() => setFlagNote("Could not flag this question. Please try again."));
+    engine.differentQuestion();
+  }, [auth.user?.id, engine]);
 
   const remoteDice = useCallback(
     (playerNumber: number, dice: number) => {
