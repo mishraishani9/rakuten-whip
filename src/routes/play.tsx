@@ -202,7 +202,9 @@ function PlayPage() {
                 onContinue={engine.continueAfterReveal}
                 onDifferentQuestion={engine.differentQuestion}
                 onSkip={engine.skipQuestion}
+                {...(auth.isStaff ? { onFlag: flagCurrentQuestion } : {})}
               />
+              {flagNote && <p className="mt-2 text-center text-xs text-gold">{flagNote}</p>}
             </div>
           )}
 
