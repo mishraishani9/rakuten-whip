@@ -565,6 +565,9 @@ export function useGameEngine() {
       if (!current) return;
       const player = current.players.find((p) => p.id === current.currentPlayerId);
       if (!player) return;
+      // A roll is only legal on the player's own turn — never while a rules
+      // popup (bar / club / jail / event) or a question is still resolving.
+      if (current.phase !== "PLAYER_TURN" && current.phase !== "READY") return;
       pushHistory();
 
       // Jail escape attempt
