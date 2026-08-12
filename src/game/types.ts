@@ -12,6 +12,10 @@ export type Question = {
   option_d: string;
   correct_option: "A" | "B" | "C" | "D";
   correct_answer: string;
+  /** Flagged for audit — questions under review never appear in gameplay. */
+  under_review?: boolean | undefined;
+  flag_reason?: string | null | undefined;
+  flagged_at?: string | null | undefined;
 };
 
 export type PlayerState = {
