@@ -333,6 +333,9 @@ export type Database = {
           correct_option: string
           created_at: string
           difficulty: string
+          flag_reason: string | null
+          flagged_at: string | null
+          flagged_by: string | null
           id: string
           option_a: string
           option_b: string
@@ -342,12 +345,16 @@ export type Database = {
           record_id: string
           record_type: string
           theme: string
+          under_review: boolean
         }
         Insert: {
           correct_answer: string
           correct_option: string
           created_at?: string
           difficulty: string
+          flag_reason?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
           id?: string
           option_a: string
           option_b: string
@@ -357,12 +364,16 @@ export type Database = {
           record_id: string
           record_type?: string
           theme: string
+          under_review?: boolean
         }
         Update: {
           correct_answer?: string
           correct_option?: string
           created_at?: string
           difficulty?: string
+          flag_reason?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
           id?: string
           option_a?: string
           option_b?: string
@@ -372,6 +383,7 @@ export type Database = {
           record_id?: string
           record_type?: string
           theme?: string
+          under_review?: boolean
         }
         Relationships: []
       }
