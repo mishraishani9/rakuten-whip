@@ -4,24 +4,32 @@ import type { Question } from "@/game/types";
 
 let cache: Question[] | null = null;
 
-export async function loadQuestionBank(force = false): Promise<Question[]> {
-  if (cache && !force) return cache;
+const SELECT_COLUMNS =
+  "record_id, record_type, difficulty, theme, question, option_a, option_b, option_c, option_d, correct_option, correct_answer, under_review, flag_reason, flagged_at";
+
+/** Every row, flagged ones included — used by the audit screen only. */
+export async function loadAllQuestions(): Promise<Question[]> {
   const all: Question[] = [];
   const pageSize = 1000;
   for (let page = 0; ; page++) {
     const { data, error } = await supabase
       .from("questions")
-      .select(
-        "record_id, record_type, difficulty, theme, question, option_a, option_b, option_c, option_d, correct_option, correct_answer",
-      )
+      .select(SELECT_COLUMNS)
       .order("record_id")
       .range(page * pageSize, page * pageSize + pageSize - 1);
     if (error) throw error;
     all.push(...((data ?? []) as unknown as Question[]));
     if (!data || data.length < pageSize) break;
   }
-  cache = all;
   return all;
+}
+
+/** Gameplay bank: questions flagged for review are excluded. */
+export async function loadQuestionBank(force = false): Promise<Question[]> {
+  if (cache && !force) return cache;
+  const playable = (await loadAllQuestions()).filter((q) => !q.under_review);
+  cache = playable;
+  return playable;
 }
 
 export function clearQuestionCache() {
@@ -129,6 +137,31 @@ export async function updateQuestion(recordId: string, patch: Partial<Question>)
 
 export async function deleteQuestion(recordId: string) {
   const { error } = await supabase.from("questions").delete().eq("record_id", recordId);
+  if (error) throw error;
+  clearQuestionCache();
+}
+
+/** Presenters/admins flag a broken question mid-game; it leaves the playable bank. */
+export async function flagQuestion(recordId: string, reason: string, userId?: string) {
+  const { error } = await supabase
+    .from("questions")
+    .update({
+      under_review: true,
+      flag_reason: reason,
+      flagged_at: new Date().toISOString(),
+      flagged_by: userId ?? null,
+    } as never)
+    .eq("record_id", recordId);
+  if (error) throw error;
+  clearQuestionCache();
+}
+
+/** Clears the flag once the wording has been fixed, returning it to gameplay. */
+export async function resolveQuestionFlag(recordId: string) {
+  const { error } = await supabase
+    .from("questions")
+    .update({ under_review: false, flag_reason: null, flagged_at: null, flagged_by: null } as never)
+    .eq("record_id", recordId);
   if (error) throw error;
   clearQuestionCache();
 }
