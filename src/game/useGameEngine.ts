@@ -105,18 +105,25 @@ export function storeState(state: GameState | null) {
 function nextEligible(
   state: GameState,
   fromId: string,
-): { players: PlayerState[]; nextId: string } {
+): { players: PlayerState[]; nextId: string; skipped: string[] } {
   const players = state.players.map((p) => ({ ...p }));
   const startIndex = players.findIndex((p) => p.id === fromId);
+  const skipped: string[] = [];
   for (let step = 1; step <= players.length; step++) {
     const candidate = players[(startIndex + step) % players.length]!;
-    if (candidate.missTurns > 0) {
+    if (candidate.id !== fromId && candidate.missTurns > 0) {
       candidate.missTurns -= 1;
+      const left = candidate.missTurns;
+      skipped.push(
+        left > 0
+          ? `${candidate.name} skips this turn (${left} more skip${left === 1 ? "" : "s"} left).`
+          : `${candidate.name} skips this turn (back in play next round).`,
+      );
       continue;
     }
-    return { players, nextId: candidate.id };
+    return { players, nextId: candidate.id, skipped };
   }
-  return { players, nextId: fromId };
+  return { players, nextId: fromId, skipped };
 }
 
 export function useGameEngine() {
