@@ -8,7 +8,8 @@ import type { Question } from "@/game/types";
 import { useAuth } from "@/hooks/useAuth";
 import {
   deleteQuestion,
-  loadQuestionBank,
+  loadAllQuestions,
+  resolveQuestionFlag,
   statsFor,
   updateQuestion,
 } from "@/services/questionService";
@@ -40,19 +41,61 @@ function AuditPage() {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState<string>("All");
   const [theme, setTheme] = useState<string>("All");
+  const [status, setStatus] = useState<"flagged" | "live" | "all">("flagged");
+  const [golden, setGolden] = useState<"All" | "Golden" | "Other">("All");
+  const [fromDay, setFromDay] = useState(0);
+  const [toDay, setToDay] = useState(0);
   const [editing, setEditing] = useState<Question | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadQuestionBank(true)
+    void loadAllQuestions()
       .then(setBank)
       .catch(() => setMessage("The question bank is temporarily unavailable."));
   }, []);
 
   const stats = useMemo(() => statsFor(bank), [bank]);
+
+  /** Flag dates drive the date-range slider (in whole days). */
+  const flaggedDays = useMemo(() => {
+    const stamps = bank
+      .map((q) => (q.flagged_at ? Date.parse(q.flagged_at) : NaN))
+      .filter((n) => Number.isFinite(n));
+    if (stamps.length === 0) return null;
+    const dayMs = 86_400_000;
+    const min = Math.floor(Math.min(...stamps) / dayMs);
+    const max = Math.floor(Math.max(...stamps) / dayMs);
+    return { min, max, span: Math.max(0, max - min), dayMs };
+  }, [bank]);
+
+  useEffect(() => {
+    if (flaggedDays) setToDay(flaggedDays.span);
+  }, [flaggedDays]);
+
+  const dayLabel = (offset: number) =>
+    flaggedDays
+      ? new Date((flaggedDays.min + offset) * flaggedDays.dayMs).toLocaleDateString()
+      : "—";
+
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
+    const lo = Math.min(fromDay, toDay);
+    const hi = Math.max(fromDay, toDay);
     return bank
+      .filter((q) =>
+        status === "all" ? true : status === "flagged" ? !!q.under_review : !q.under_review,
+      )
+      .filter((q) => {
+        if (golden === "All") return true;
+        const isGolden = (q.record_type ?? "").toLowerCase() === "golden";
+        return golden === "Golden" ? isGolden : !isGolden;
+      })
+      .filter((q) => {
+        if (!flaggedDays || status === "live") return true;
+        if (!q.flagged_at) return status !== "flagged";
+        const day = Math.floor(Date.parse(q.flagged_at) / flaggedDays.dayMs) - flaggedDays.min;
+        return day >= lo && day <= hi;
+      })
       .filter((q) => (difficulty === "All" ? true : q.difficulty === difficulty))
       .filter((q) => (theme === "All" ? true : q.theme === theme))
       .filter((q) =>
@@ -61,7 +104,7 @@ function AuditPage() {
           : true,
       )
       .slice(0, 120);
-  }, [bank, difficulty, theme, search]);
+  }, [bank, difficulty, theme, search, status, golden, fromDay, toDay, flaggedDays]);
 
   if (auth.loading) return <main className="p-8 text-sm text-muted-foreground">Checking access…</main>;
 
@@ -90,10 +133,29 @@ function AuditPage() {
         correct_answer: editing.correct_answer,
       });
       setBank((prev) => prev.map((q) => (q.record_id === editing.record_id ? editing : q)));
-      setMessage(`${editing.record_id} updated.`);
+      setMessage(
+        `${editing.record_id} updated. It stays in review until you approve it back into gameplay.`,
+      );
       setEditing(null);
     } catch {
       setMessage("Update failed. Nothing was changed.");
+    }
+  };
+
+  /** Puts a rephrased question back into the playable bank. */
+  const approve = async (recordId: string) => {
+    try {
+      await resolveQuestionFlag(recordId);
+      setBank((prev) =>
+        prev.map((q) =>
+          q.record_id === recordId
+            ? { ...q, under_review: false, flag_reason: null, flagged_at: null }
+            : q,
+        ),
+      );
+      setMessage(`${recordId} is back in gameplay.`);
+    } catch {
+      setMessage("Could not approve this question. Please try again.");
     }
   };
 
@@ -117,7 +179,7 @@ function AuditPage() {
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {stats.total} questions · {stats.byDifficulty['Easy'] ?? 0} easy · {stats.byDifficulty['Medium'] ?? 0} medium ·{" "}
-        {stats.byDifficulty['Hard'] ?? 0} hard
+        {stats.byDifficulty['Hard'] ?? 0} hard · {bank.filter((q) => q.under_review).length} in review
       </p>
 
       <div className="mt-5 grid gap-2 sm:grid-cols-3">
@@ -146,6 +208,60 @@ function AuditPage() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+        <select
+          aria-label="Review status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as typeof status)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+        >
+          <option value="flagged">Flagged for review</option>
+          <option value="live">Live in gameplay</option>
+          <option value="all">All questions</option>
+        </select>
+        <select
+          aria-label="Data set"
+          value={golden}
+          onChange={(e) => setGolden(e.target.value as typeof golden)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+        >
+          <option value="All">Any data set</option>
+          <option value="Golden">Golden data set only</option>
+          <option value="Other">Non-golden only</option>
+        </select>
+        {flaggedDays && status !== "live" ? (
+          <div className="rounded-md border border-input bg-background px-3 py-2">
+            <p className="text-[0.65rem] uppercase tracking-wider text-muted-foreground">
+              Flagged {dayLabel(Math.min(fromDay, toDay))} → {dayLabel(Math.max(fromDay, toDay))}
+            </p>
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                aria-label="Flagged from date"
+                type="range"
+                min={0}
+                max={flaggedDays.span}
+                value={fromDay}
+                onChange={(e) => setFromDay(Number(e.target.value))}
+                className="w-full accent-gold"
+              />
+              <input
+                aria-label="Flagged to date"
+                type="range"
+                min={0}
+                max={flaggedDays.span}
+                value={toDay}
+                onChange={(e) => setToDay(Number(e.target.value))}
+                className="w-full accent-gold"
+              />
+            </div>
+          </div>
+        ) : (
+          <p className="self-center text-xs text-muted-foreground">
+            No flag dates to filter on yet.
+          </p>
+        )}
       </div>
 
       {message && <p className="mt-4 text-sm text-foreground">{message}</p>}
