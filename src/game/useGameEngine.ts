@@ -503,7 +503,11 @@ export function useGameEngine() {
           ? prev.winnerIds
           : [...prev.winnerIds, playerId],
         currentQuestion: null,
-        notice: null,
+        notice: {
+          title: `🏆 ${prev.players.find((p) => p.id === playerId)?.name ?? "Player"} wins!`,
+          body: "They reached the FINISH flag. Close this to see the final scoreboard.",
+          tone: "success" as const,
+        },
       }));
       log({ eventType: "MOVE", position: 0 });
     },
@@ -512,7 +516,8 @@ export function useGameEngine() {
 
   const endTurn = useCallback(() => {
     update((prev) => {
-      const { players, nextId } = nextEligible(prev, prev.currentPlayerId);
+      const { players, nextId, skipped } = nextEligible(prev, prev.currentPlayerId);
+      const nextName = players.find((p) => p.id === nextId)?.name ?? "Next player";
       return {
         ...prev,
         players,
@@ -526,7 +531,14 @@ export function useGameEngine() {
         turnNumber: prev.turnNumber + 1,
         rollsThisTurn: 0,
         timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
-        notice: null,
+        notice:
+          skipped.length > 0
+            ? {
+                title: "Turns skipped",
+                body: `${skipped.join(" ")} ${nextName} rolls now.`,
+                tone: "warning" as const,
+              }
+            : null,
       };
     });
   }, [update]);
