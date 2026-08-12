@@ -22,6 +22,7 @@ export function QuestionCard({
   onContinue,
   onDifferentQuestion,
   onSkip,
+  onFlag,
   variant = "presenter",
   canAnswer = true,
 }: {
@@ -39,6 +40,8 @@ export function QuestionCard({
   onContinue?: () => void;
   onDifferentQuestion?: () => void;
   onSkip?: () => void;
+  /** Staff-only: flag this question for audit (removes it from gameplay). */
+  onFlag?: () => void;
   /** "player" renders the read-only online view: answers only, no presenter tools. */
   variant?: "presenter" | "player";
   canAnswer?: boolean;
@@ -159,6 +162,11 @@ export function QuestionCard({
               <Button variant="ghost" onClick={onSkip} disabled={!isActive}>
                 Skip question
               </Button>
+              {onFlag && (
+                <Button variant="ghost" className="text-destructive" onClick={onFlag}>
+                  ⚑ Flag for audit
+                </Button>
+              )}
             </>
           )}
         </div>
