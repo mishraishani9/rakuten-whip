@@ -342,6 +342,11 @@ export function useGameEngine() {
               }));
               return;
             }
+            // A bonus never drops a pawn into a penalty.
+            if (squareAt(landed, board).type === "penalty") {
+              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              return;
+            }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
           }, 900);
           return;
@@ -368,7 +373,9 @@ export function useGameEngine() {
                 return { ...p, position: landed };
               }),
             }));
-            if (squareAt(landed, board).type === "penalty") {
+            // A penalty never drops a pawn onto a penalty or a bonus.
+            const next = squareAt(landed, board).type;
+            if (next === "penalty" || next === "bonus") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
               return;
             }
