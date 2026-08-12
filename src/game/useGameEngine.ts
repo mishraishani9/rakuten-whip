@@ -105,18 +105,25 @@ export function storeState(state: GameState | null) {
 function nextEligible(
   state: GameState,
   fromId: string,
-): { players: PlayerState[]; nextId: string } {
+): { players: PlayerState[]; nextId: string; skipped: string[] } {
   const players = state.players.map((p) => ({ ...p }));
   const startIndex = players.findIndex((p) => p.id === fromId);
+  const skipped: string[] = [];
   for (let step = 1; step <= players.length; step++) {
     const candidate = players[(startIndex + step) % players.length]!;
-    if (candidate.missTurns > 0) {
+    if (candidate.id !== fromId && candidate.missTurns > 0) {
       candidate.missTurns -= 1;
+      const left = candidate.missTurns;
+      skipped.push(
+        left > 0
+          ? `${candidate.name} skips this turn (${left} more skip${left === 1 ? "" : "s"} left).`
+          : `${candidate.name} skips this turn (back in play next round).`,
+      );
       continue;
     }
-    return { players, nextId: candidate.id };
+    return { players, nextId: candidate.id, skipped };
   }
-  return { players, nextId: fromId };
+  return { players, nextId: fromId, skipped };
 }
 
 export function useGameEngine() {
@@ -335,6 +342,11 @@ export function useGameEngine() {
               }));
               return;
             }
+            // A bonus never drops a pawn into a penalty.
+            if (squareAt(landed, board).type === "penalty") {
+              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              return;
+            }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
           }, 900);
           return;
@@ -361,7 +373,9 @@ export function useGameEngine() {
                 return { ...p, position: landed };
               }),
             }));
-            if (squareAt(landed, board).type === "penalty") {
+            // A penalty never drops a pawn onto a penalty or a bonus.
+            const next = squareAt(landed, board).type;
+            if (next === "penalty" || next === "bonus") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
               return;
             }
@@ -496,7 +510,11 @@ export function useGameEngine() {
           ? prev.winnerIds
           : [...prev.winnerIds, playerId],
         currentQuestion: null,
-        notice: null,
+        notice: {
+          title: `🏆 ${prev.players.find((p) => p.id === playerId)?.name ?? "Player"} wins!`,
+          body: "They reached the FINISH flag. Close this to see the final scoreboard.",
+          tone: "success" as const,
+        },
       }));
       log({ eventType: "MOVE", position: 0 });
     },
@@ -505,7 +523,8 @@ export function useGameEngine() {
 
   const endTurn = useCallback(() => {
     update((prev) => {
-      const { players, nextId } = nextEligible(prev, prev.currentPlayerId);
+      const { players, nextId, skipped } = nextEligible(prev, prev.currentPlayerId);
+      const nextName = players.find((p) => p.id === nextId)?.name ?? "Next player";
       return {
         ...prev,
         players,
@@ -519,7 +538,14 @@ export function useGameEngine() {
         turnNumber: prev.turnNumber + 1,
         rollsThisTurn: 0,
         timeRemaining: GAME_SETTINGS.QUESTION_TIME_SECONDS,
-        notice: null,
+        notice:
+          skipped.length > 0
+            ? {
+                title: "Turns skipped",
+                body: `${skipped.join(" ")} ${nextName} rolls now.`,
+                tone: "warning" as const,
+              }
+            : null,
       };
     });
   }, [update]);
@@ -546,6 +572,9 @@ export function useGameEngine() {
       if (!current) return;
       const player = current.players.find((p) => p.id === current.currentPlayerId);
       if (!player) return;
+      // A roll is only legal on the player's own turn — never while a rules
+      // popup (bar / club / jail / event) or a question is still resolving.
+      if (current.phase !== "PLAYER_TURN" && current.phase !== "READY") return;
       pushHistory();
 
       // Jail escape attempt

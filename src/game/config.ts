@@ -217,7 +217,38 @@ export function buildBoard(size: number): BoardPosition[] {
     themeIndex++;
     board.push({ position: i, type: "question", theme, difficulty });
   }
-  return board;
+  return retargetSpecials(board);
+}
+
+/**
+ * A bonus square must never push a pawn onto a penalty square (and vice versa).
+ * Amounts are nudged (1..4 forward / 1..3 back, staying on the board) until the
+ * destination is a neutral square, for every board size.
+ */
+function retargetSpecials(board: BoardPosition[]): BoardPosition[] {
+  const size = board.length;
+  const typeAt = (index: number) => board[Math.min(size - 1, Math.max(0, index))]!.type;
+  return board.map((square) => {
+    if (square.type === "bonus") {
+      const options = [square.bonusMove, 2, 3, 4, 1];
+      const safe =
+        options.find((m) => {
+          const t = typeAt(square.position + m);
+          return t !== "penalty" && t !== "bonus";
+        }) ?? square.bonusMove;
+      return { ...square, bonusMove: safe };
+    }
+    if (square.type === "penalty") {
+      const options = [square.penaltyMove, 2, 3, 1];
+      const safe =
+        options.find((m) => {
+          const t = typeAt(square.position - m);
+          return t !== "bonus" && t !== "penalty";
+        }) ?? square.penaltyMove;
+      return { ...square, penaltyMove: safe };
+    }
+    return square;
+  });
 }
 
 export const BOARD_POSITIONS: BoardPosition[] = buildBoard(GAME_SETTINGS.DEFAULT_BOARD_SIZE);
