@@ -143,6 +143,8 @@ export function useGameEngine() {
   /** Action that must run when the current rules popup closes (dismiss or timeout). */
   const pendingRef = useRef<(() => void) | null>(null);
   const pendingTimerRef = useRef<number | null>(null);
+  /** Latest endTurn, so scheduled popup callbacks can hand the turn over. */
+  const endTurnRef = useRef<(() => void) | null>(null);
 
   const runPending = useCallback(() => {
     if (pendingTimerRef.current !== null) {
@@ -587,6 +589,8 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
     });
   }, [update]);
 
+  endTurnRef.current = endTurn;
+
   /**
    * Club / Bar / Jail hand the turn over on their own once the rules popup has
    * been on screen long enough for everyone to read it.
@@ -960,13 +964,21 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
   }, [log]);
 
   const continuePlay = useCallback(() => {
+    // A bonus / penalty / event popup has queued work: run it instead of
+    // handing the turn over, so the pawn moves and the new square resolves.
+    if (pendingRef.current) {
+      update((prev) => ({ ...prev, notice: null }));
+      runPending();
+      return;
+    }
     update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
     endTurn();
-  }, [endTurn, update]);
+  }, [endTurn, runPending, update]);
 
   const dismissNotice = useCallback(() => {
     update((prev) => (prev.notice ? { ...prev, notice: null } : prev));
-  }, [update]);
+    if (pendingRef.current) runPending();
+  }, [runPending, update]);
 
   const endGame = useCallback(async () => {
     const current = stateRef.current;
