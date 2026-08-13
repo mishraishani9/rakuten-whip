@@ -170,7 +170,7 @@ function PlayPage() {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1">
+      <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="relative min-h-0 flex-1">
           <BoardViewport>
             <GameBoard
@@ -186,7 +186,7 @@ function PlayPage() {
           </BoardViewport>
 
           {state.currentQuestion && !isFinished && (
-            <div className="absolute inset-x-0 top-0 z-20 mx-auto max-w-3xl p-3">
+            <div className="absolute inset-x-0 top-0 z-20 mx-auto max-h-full w-full max-w-3xl overflow-y-auto p-2 sm:p-3">
               <QuestionCard
                 question={state.currentQuestion}
                 phase={state.phase}
@@ -283,7 +283,7 @@ function PlayPage() {
         </div>
 
         {panelOpen && !presenterMode && (
-          <aside className="flex w-[22rem] shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-background/80 p-3">
+          <aside className="flex max-h-[55vh] w-full shrink-0 flex-col gap-3 overflow-y-auto border-t border-border bg-background/80 p-3 lg:max-h-none lg:w-[22rem] lg:border-l lg:border-t-0">
             {state.saveError && (
               <p className="rounded-lg border border-gold/60 bg-gold/10 p-2 text-xs text-foreground">
                 {state.saveError}
