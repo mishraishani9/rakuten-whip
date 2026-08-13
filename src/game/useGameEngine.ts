@@ -401,17 +401,31 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN &&
               squareAt(landed, board).type === "bonus"
             ) {
-              update((prev) => ({
-                ...prev,
-                phase: "PLAYER_TURN",
-                notice: { title: "Bonus chain limit reached. Turn continues.", tone: "info" },
-              }));
+              if (hasRollLeft(current)) {
+                update((prev) => ({
+                  ...prev,
+                  phase: "PLAYER_TURN",
+                  notice: {
+                    title: "Bonus chain limit reached.",
+                    body: "No second bonus in a row — same player rolls again.",
+                    tone: "info",
+                  },
+                }));
+              } else {
+                handOver(
+                  "Bonus chain limit reached.",
+                  `No second bonus in a row, and this turn's rolls are used up — play passes to ${nextPlayerName(current)}.`,
+                  "info",
+                );
+              }
               return;
             }
             // A bonus never chains into a penalty — hand over instead.
             if (squareAt(landed, board).type === "penalty") {
-              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-              endTurnRef.current?.();
+              handOver(
+                "Bonus landed on a PENALTY square.",
+                `A bonus never chains into a penalty, so nothing more happens here — play passes to ${nextPlayerName(current)}.`,
+              );
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -442,8 +456,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             // A penalty never chains into another special — hand over instead.
             const next = squareAt(landed, board).type;
             if (next === "penalty" || next === "bonus") {
-              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-              endTurnRef.current?.();
+              handOver(
+                "Penalty landed on another special square.",
+                `Specials never chain, so nothing more happens here — play passes to ${nextPlayerName(current)}.`,
+              );
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -491,8 +507,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               // A "?" move must not chain straight into a bonus/penalty square.
               const next = squareAt(landed, board).type;
               if (next === "bonus" || next === "penalty") {
-                update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-                endTurnRef.current?.();
+                handOver(
+                  "? move landed on a special square.",
+                  `Specials never chain from a "?" move — play passes to ${nextPlayerName(current)}.`,
+                );
                 return;
               }
               resolveLanding(playerId, landed, dice, bonusChain + 1);
