@@ -140,6 +140,34 @@ export function useGameEngine() {
   stateRef.current = state;
   /** Authoritative set of question ids already served in this session. */
   const usedIdsRef = useRef<Set<string>>(new Set());
+  /** Action that must run when the current rules popup closes (dismiss or timeout). */
+  const pendingRef = useRef<(() => void) | null>(null);
+  const pendingTimerRef = useRef<number | null>(null);
+
+  const runPending = useCallback(() => {
+    if (pendingTimerRef.current !== null) {
+      window.clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    const fn = pendingRef.current;
+    pendingRef.current = null;
+    if (fn) fn();
+  }, []);
+
+  /** Shows a rules popup and runs `fn` on dismiss, or automatically after 15s. */
+  const schedule = useCallback(
+    (fn: () => void, ms: number) => {
+      if (pendingTimerRef.current !== null) window.clearTimeout(pendingTimerRef.current);
+      pendingRef.current = fn;
+      pendingTimerRef.current = window.setTimeout(() => {
+        pendingTimerRef.current = null;
+        const pending = pendingRef.current;
+        pendingRef.current = null;
+        if (pending) pending();
+      }, ms);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadQuestionBank()
