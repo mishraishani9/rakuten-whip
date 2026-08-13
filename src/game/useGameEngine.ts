@@ -135,6 +135,12 @@ function nextEligible(
   return { players, nextId: fromId, skipped };
 }
 
+/** Name of the player who will roll after the current one hands over. */
+function nextPlayerName(state: GameState): string {
+  const { players, nextId } = nextEligible(state, state.currentPlayerId);
+  return players.find((p) => p.id === nextId)?.name ?? "the next player";
+}
+
 export function useGameEngine() {
   const [state, setState] = useState<GameState | null>(null);
   const [bank, setBank] = useState<Question[]>([]);
