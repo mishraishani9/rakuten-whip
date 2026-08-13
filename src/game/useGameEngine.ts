@@ -348,21 +348,24 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
-            let landed = position;
-            let won = false;
+            // Compute the destination synchronously: React state updaters run
+            // later, so anything read back from inside one is still stale here.
+            const from = current.players.find((p) => p.id === playerId)?.position ?? position;
+            const raw = from + square.bonusMove;
+            const won = raw >= finishAt;
+            const landed = won ? finishAt : raw;
             update((prev) => ({
               ...prev,
-              players: prev.players.map((p) => {
-                if (p.id !== playerId) return p;
-                const raw = p.position + square.bonusMove;
-                if (raw >= finishAt) {
-                  won = true;
-                  landed = finishAt;
-                  return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
-                }
-                landed = raw;
-                return { ...p, position: raw };
-              }),
+              players: prev.players.map((p) =>
+                p.id === playerId
+                  ? {
+                      ...p,
+                      position: landed,
+                      laps: won ? p.laps + 1 : p.laps,
+                      completedCircuit: won ? true : p.completedCircuit,
+                    }
+                  : p,
+              ),
             }));
             if (won) {
               declareWinner(playerId);
@@ -402,14 +405,13 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
-            let landed = position;
+            const from = current.players.find((p) => p.id === playerId)?.position ?? position;
+            const landed = Math.max(0, from - square.penaltyMove);
             update((prev) => ({
               ...prev,
-              players: prev.players.map((p) => {
-                if (p.id !== playerId) return p;
-                landed = Math.max(0, p.position - square.penaltyMove);
-                return { ...p, position: landed };
-              }),
+              players: prev.players.map((p) =>
+                p.id === playerId ? { ...p, position: landed } : p,
+              ),
             }));
             // A penalty never chains into another special — hand over instead.
             const next = squareAt(landed, board).type;
@@ -439,24 +441,35 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             schedule(() => {
               const current = stateRef.current;
               if (!current || current.phase === "PAUSED") return;
-              let landed = position;
-              let won = false;
+              const from = current.players.find((p) => p.id === playerId)?.position ?? position;
+              const raw = from + outcome.amount;
+              const won = raw >= finishAt;
+              const landed = won ? finishAt : Math.max(0, raw);
               update((prev) => ({
                 ...prev,
-                players: prev.players.map((p) => {
-                  if (p.id !== playerId) return p;
-                  const raw = p.position + outcome.amount;
-                  if (raw >= finishAt) {
-                    won = true;
-                    landed = finishAt;
-                    return { ...p, position: finishAt, laps: p.laps + 1, completedCircuit: true };
-                  }
-                  landed = Math.max(0, raw);
-                  return { ...p, position: landed };
-                }),
+                players: prev.players.map((p) =>
+                  p.id === playerId
+                    ? {
+                        ...p,
+                        position: landed,
+                        laps: won ? p.laps + 1 : p.laps,
+                        completedCircuit: won ? true : p.completedCircuit,
+                      }
+                    : p,
+                ),
               }));
-              if (won) declareWinner(playerId);
-              else resolveLanding(playerId, landed, dice, bonusChain + 1);
+              if (won) {
+                declareWinner(playerId);
+                return;
+              }
+              // A "?" move must not chain straight into a bonus/penalty square.
+              const next = squareAt(landed, board).type;
+              if (next === "bonus" || next === "penalty") {
+                update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+                endTurnRef.current?.();
+                return;
+              }
+              resolveLanding(playerId, landed, dice, bonusChain + 1);
             }, POPUP_MS);
             return;
           }
