@@ -41,6 +41,45 @@ function matchesTheme(question: Question, theme: BoardTheme) {
   return raw.includes(question.theme.toLowerCase());
 }
 
+const STOPWORDS = new Set([
+  "a","an","the","of","in","on","for","to","is","are","was","were","be","been","which","what",
+  "who","whom","whose","that","this","these","those","and","or","not","it","its","as","by","with",
+  "from","at","how","why","when","does","do","did","can","could","would","should","may","might",
+  "must","following","best","most","true","false","statement","statements","about","under","law",
+]);
+
+function norm(text: string) {
+  return text.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Signatures that identify a question by *meaning*, not by wording or option order,
+ * so a rephrased twin or a shuffled-options twin never follows the original.
+ */
+function signaturesFor(q: Question): string[] {
+  const text = norm(q.question);
+  const options = [q.option_a, q.option_b, q.option_c, q.option_d]
+    .map(norm)
+    .sort()
+    .join("|");
+  const tokens = [...new Set(text.split(" ").filter((w) => w.length > 3 && !STOPWORDS.has(w)))]
+    .sort()
+    .join(" ");
+  const sigs = [`t:${text}`, `o:${options}`, `a:${norm(q.correct_answer)}|${options}`];
+  if (tokens.length > 12) sigs.push(`k:${tokens}`);
+  return sigs;
+}
+
+function blockedSignatures(bank: Question[], ids: Iterable<string>): Set<string> {
+  const wanted = new Set(ids);
+  const blocked = new Set<string>();
+  for (const q of bank) {
+    if (!wanted.has(q.record_id)) continue;
+    for (const sig of signaturesFor(q)) blocked.add(sig);
+  }
+  return blocked;
+}
+
 export function poolFor(
   bank: Question[],
   theme: BoardTheme,
@@ -48,9 +87,13 @@ export function poolFor(
   usedIds: string[],
 ): Question[] {
   const used = new Set(usedIds);
-  return bank.filter(
+  const blocked = blockedSignatures(bank, used);
+  const candidates = bank.filter(
     (q) => q.difficulty === difficulty && matchesTheme(q, theme) && !used.has(q.record_id),
   );
+  const fresh = candidates.filter((q) => !signaturesFor(q).some((s) => blocked.has(s)));
+  // Only fall back to near-duplicates if nothing genuinely new is left.
+  return fresh.length > 0 ? fresh : candidates;
 }
 
 /** Random pick that never violates the theme + difficulty requirement. */
@@ -63,7 +106,13 @@ export function pickQuestion(
   goldenFirst = false,
 ): Question | null {
   let pool = poolFor(bank, theme, difficulty, usedIds);
-  if (excludeRecordId && pool.length > 1) pool = pool.filter((q) => q.record_id !== excludeRecordId);
+  if (excludeRecordId && pool.length > 1) {
+    const excluded = blockedSignatures(bank, [excludeRecordId]);
+    const distinct = pool.filter(
+      (q) => q.record_id !== excludeRecordId && !signaturesFor(q).some((s) => excluded.has(s)),
+    );
+    pool = distinct.length > 0 ? distinct : pool.filter((q) => q.record_id !== excludeRecordId);
+  }
   if (pool.length === 0) return null;
   if (goldenFirst) {
     const golden = pool.filter((q) => q.record_type?.toLowerCase() === "golden");
