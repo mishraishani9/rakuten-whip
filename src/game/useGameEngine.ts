@@ -316,7 +316,7 @@ export function useGameEngine() {
           currentSquareDifficulty: difficulty,
           notice: {
             title: "No unused questions remain for this category.",
-            body: `${theme} · ${difficulty}`,
+            body: `${theme} · ${difficulty}. Nothing to answer here — play passes to the next player.`,
             tone: "warning",
           },
         }));
