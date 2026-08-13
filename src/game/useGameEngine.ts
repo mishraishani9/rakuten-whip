@@ -656,7 +656,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
                 body: skipped.join(" "),
                 tone: "warning" as const,
               }
-            : { title: `${nextName}'s turn — enter the dice value.`, tone: "info" as const },
+            : null,
       };
     });
   }, [update]);
