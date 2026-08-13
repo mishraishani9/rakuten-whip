@@ -109,9 +109,13 @@ function nextEligible(
   const players = state.players.map((p) => ({ ...p }));
   const startIndex = players.findIndex((p) => p.id === fromId);
   const skipped: string[] = [];
-  for (let step = 1; step <= players.length; step++) {
-    const candidate = players[(startIndex + step) % players.length]!;
-    if (candidate.id !== fromId && candidate.missTurns > 0) {
+  const count = players.length;
+  // Walk clockwise. Anyone with pending skips (including the player who just
+  // played) burns one skip and is passed over, so with two players the turn can
+  // legitimately come back around to the other pawn.
+  for (let step = 1; step <= count * 4; step++) {
+    const candidate = players[(startIndex + step) % count]!;
+    if (candidate.missTurns > 0) {
       candidate.missTurns -= 1;
       const left = candidate.missTurns;
       skipped.push(
