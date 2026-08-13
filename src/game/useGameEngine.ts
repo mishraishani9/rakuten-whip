@@ -343,7 +343,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               tone: "success",
             },
           }));
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             let landed = position;
@@ -377,9 +377,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               }));
               return;
             }
-            // A bonus never drops a pawn into a penalty.
+            // A bonus never chains into a penalty — hand over instead.
             if (squareAt(landed, board).type === "penalty") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              endTurnRef.current?.();
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -396,7 +397,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               tone: "danger",
             },
           }));
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             let landed = position;
@@ -408,10 +409,11 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
                 return { ...p, position: landed };
               }),
             }));
-            // A penalty never drops a pawn onto a penalty or a bonus.
+            // A penalty never chains into another special — hand over instead.
             const next = squareAt(landed, board).type;
             if (next === "penalty" || next === "bonus") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              endTurnRef.current?.();
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -432,7 +434,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           if (outcome.kind === "bonus") {
             applyPlayer((p) => ({ ...p, bonuses: p.bonuses + 1 }));
             log({ eventType: "BONUS", position, diceValue: dice });
-            window.setTimeout(() => {
+            schedule(() => {
               const current = stateRef.current;
               if (!current || current.phase === "PAUSED") return;
               let landed = position;
@@ -457,7 +459,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             return;
           }
           const target = cornerPositions(size)[outcome.target];
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             update((prev) => ({
