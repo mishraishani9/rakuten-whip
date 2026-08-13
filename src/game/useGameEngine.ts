@@ -749,7 +749,17 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             : p,
         ),
         notice: isCorrect
-          ? { title: "Correct! You get another turn.", tone: "success" }
+          ? hasRollLeft(current)
+            ? {
+                title: "Correct! You get another roll.",
+                body: "Same player continues — enter the next dice value.",
+                tone: "success" as const,
+              }
+            : {
+                title: `Correct! That was your last roll of this turn.`,
+                body: `Only ${GAME_SETTINGS.MAX_ROLLS_PER_TURN} rolls are allowed per turn — play passes to ${nextPlayerName(current)}.`,
+                tone: "success" as const,
+              }
           : {
               title: isTimeout
                 ? "Time up! Your pawn moves back."
