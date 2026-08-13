@@ -102,6 +102,11 @@ export function storeState(state: GameState | null) {
   else window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
 }
 
+/** True while the current player still has one of the allowed rolls left. */
+function hasRollLeft(state: GameState): boolean {
+  return (state.rollsThisTurn ?? 0) < GAME_SETTINGS.MAX_ROLLS_PER_TURN;
+}
+
 function nextEligible(
   state: GameState,
   fromId: string,
