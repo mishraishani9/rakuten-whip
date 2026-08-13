@@ -109,9 +109,13 @@ function nextEligible(
   const players = state.players.map((p) => ({ ...p }));
   const startIndex = players.findIndex((p) => p.id === fromId);
   const skipped: string[] = [];
-  for (let step = 1; step <= players.length; step++) {
-    const candidate = players[(startIndex + step) % players.length]!;
-    if (candidate.id !== fromId && candidate.missTurns > 0) {
+  const count = players.length;
+  // Walk clockwise. Anyone with pending skips (including the player who just
+  // played) burns one skip and is passed over, so with two players the turn can
+  // legitimately come back around to the other pawn.
+  for (let step = 1; step <= count * 4; step++) {
+    const candidate = players[(startIndex + step) % count]!;
+    if (candidate.missTurns > 0) {
       candidate.missTurns -= 1;
       const left = candidate.missTurns;
       skipped.push(
@@ -136,6 +140,34 @@ export function useGameEngine() {
   stateRef.current = state;
   /** Authoritative set of question ids already served in this session. */
   const usedIdsRef = useRef<Set<string>>(new Set());
+  /** Action that must run when the current rules popup closes (dismiss or timeout). */
+  const pendingRef = useRef<(() => void) | null>(null);
+  const pendingTimerRef = useRef<number | null>(null);
+
+  const runPending = useCallback(() => {
+    if (pendingTimerRef.current !== null) {
+      window.clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    const fn = pendingRef.current;
+    pendingRef.current = null;
+    if (fn) fn();
+  }, []);
+
+  /** Shows a rules popup and runs `fn` on dismiss, or automatically after 15s. */
+  const schedule = useCallback(
+    (fn: () => void, ms: number) => {
+      if (pendingTimerRef.current !== null) window.clearTimeout(pendingTimerRef.current);
+      pendingRef.current = fn;
+      pendingTimerRef.current = window.setTimeout(() => {
+        pendingTimerRef.current = null;
+        const pending = pendingRef.current;
+        pendingRef.current = null;
+        if (pending) pending();
+      }, ms);
+    },
+    [],
+  );
 
   useEffect(() => {
     loadQuestionBank()
@@ -311,7 +343,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               tone: "success",
             },
           }));
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             let landed = position;
@@ -345,9 +377,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               }));
               return;
             }
-            // A bonus never drops a pawn into a penalty.
+            // A bonus never chains into a penalty — hand over instead.
             if (squareAt(landed, board).type === "penalty") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              endTurnRef.current?.();
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -364,7 +397,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               tone: "danger",
             },
           }));
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             let landed = position;
@@ -376,10 +409,11 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
                 return { ...p, position: landed };
               }),
             }));
-            // A penalty never drops a pawn onto a penalty or a bonus.
+            // A penalty never chains into another special — hand over instead.
             const next = squareAt(landed, board).type;
             if (next === "penalty" || next === "bonus") {
               update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
+              endTurnRef.current?.();
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -400,7 +434,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           if (outcome.kind === "bonus") {
             applyPlayer((p) => ({ ...p, bonuses: p.bonuses + 1 }));
             log({ eventType: "BONUS", position, diceValue: dice });
-            window.setTimeout(() => {
+            schedule(() => {
               const current = stateRef.current;
               if (!current || current.phase === "PAUSED") return;
               let landed = position;
@@ -425,7 +459,7 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             return;
           }
           const target = cornerPositions(size)[outcome.target];
-          window.setTimeout(() => {
+          schedule(() => {
             const current = stateRef.current;
             if (!current || current.phase === "PAUSED") return;
             update((prev) => ({
