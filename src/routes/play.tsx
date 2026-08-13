@@ -21,9 +21,9 @@ import { useRoomHost } from "@/hooks/useRoomHost";
 import { flagQuestion } from "@/services/questionService";
 import { cn } from "@/lib/utils";
 
-const TITLE = "Play WHIP — Presenter-Led IP Quiz Board Game";
+const TITLE = "Play Rakuten FLIP — Presenter-Led IP Quiz Board Game";
 const DESCRIPTION =
-  "Run a WHIP session: dynamic board, dice entry, 30-second timed IP questions, online game rooms with live player seats, chat and a scoreboard.";
+  "Run a Rakuten FLIP session: dynamic board, dice entry, 30-second timed IP questions, online game rooms with live player seats, chat and a scoreboard.";
 
 export const Route = createFileRoute("/play")({
   head: () => ({
@@ -136,7 +136,7 @@ function PlayPage() {
             to="/"
             className="text-gradient-gold font-display text-sm font-black uppercase tracking-[0.18em] sm:text-base"
           >
-            World &amp; Highlights in Intellectual Property
+            Fun &amp; Learning in Intellectual Property
           </Link>
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             <label className="flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground">

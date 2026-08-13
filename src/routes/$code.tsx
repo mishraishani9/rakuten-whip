@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { PlayerRoomView } from "@/components/game/PlayerRoomView";
 
-const TITLE = "Join a WHIP Game Room — Live IP Quiz Board Game";
+const TITLE = "Join a Rakuten FLIP Game Room — Live IP Quiz Board Game";
 const DESCRIPTION =
-  "Enter a WHIP game room to play the IP awareness board game live: roll the on-screen dice, answer timed questions and chat with the table.";
+  "Enter a Rakuten FLIP game room to play the IP awareness board game live: roll the on-screen dice, answer timed questions and chat with the table.";
 
 export const Route = createFileRoute("/$code")({
   head: () => ({

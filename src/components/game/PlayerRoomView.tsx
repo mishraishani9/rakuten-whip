@@ -99,7 +99,7 @@ export function PlayerRoomView({ code, slug }: { code: string; slug?: string }) 
             Join room {code}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in or create an account to take a seat in this WHIP session.
+            Sign in or create an account to take a seat in this Rakuten FLIP session.
           </p>
           <Button className="mt-4" asChild>
             <Link to="/auth">Sign in to join</Link>

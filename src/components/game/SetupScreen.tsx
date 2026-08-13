@@ -38,7 +38,7 @@ export function SetupScreen({
   onResume: () => void;
   onStart: (gameName: string, players: SetupPlayer[], options: StartOptions) => void;
 }) {
-  const [gameName, setGameName] = useState(`WHIP Workshop ${new Date().toLocaleDateString("en-GB")}`);
+  const [gameName, setGameName] = useState(`Rakuten FLIP Workshop ${new Date().toLocaleDateString("en-GB")}`);
   const [players, setPlayers] = useState<SetupPlayer[]>(defaultPlayers(GAME_SETTINGS.DEFAULT_PLAYERS));
   const [boardSize, setBoardSize] = useState<number>(GAME_SETTINGS.DEFAULT_BOARD_SIZE);
   const [goldenFirst, setGoldenFirst] = useState(true);
@@ -227,7 +227,7 @@ export function SetupScreen({
             size="lg"
             onClick={() =>
               onStart(
-                gameName.trim() || "WHIP Workshop",
+                gameName.trim() || "Rakuten FLIP Workshop",
                 players.map((p, i) => ({ ...p, number: i + 1, name: p.name.trim() || `Player ${i + 1}` })),
                 { boardSize, goldenFirst },
               )

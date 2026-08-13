@@ -15,9 +15,9 @@ import {
 } from "@/services/questionService";
 import { StaffGate } from "@/components/StaffGate";
 
-const TITLE = "Audit the IP Question Bank — WHIP";
+const TITLE = "Audit the IP Question Bank — Rakuten FLIP";
 const DESCRIPTION =
-  "Presenters and admins can search, review, correct and remove intellectual-property quiz questions in the WHIP question bank.";
+  "Presenters and admins can search, review, correct and remove intellectual-property quiz questions in the Rakuten FLIP question bank.";
 
 export const Route = createFileRoute("/questions")({
   head: () => ({

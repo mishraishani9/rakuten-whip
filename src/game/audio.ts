@@ -1,5 +1,5 @@
 /**
- * WHIP soundtrack. Everything is synthesised with WebAudio so it works offline.
+ * Rakuten FLIP soundtrack. Everything is synthesised with WebAudio so it works offline.
  *
  * Three independent layers:
  *  - "menu"     : calm bed for splash / home
