@@ -280,7 +280,10 @@ export function useGameEngine() {
     [bank, log, update],
   );
 
-  /** Resolves the square a player landed on. */
+  /** Every rules popup (bonus, penalty, ?, club, bar, jail) stays readable for the same time. */
+const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
+
+/** Resolves the square a player landed on. */
   const resolveLanding = useCallback(
     (playerId: string, position: number, dice: number, bonusChain: number) => {
       const board: BoardPosition[] = stateRef.current?.board ?? BOARD_POSITIONS;
@@ -348,7 +351,7 @@ export function useGameEngine() {
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
-          }, 900);
+          }, POPUP_MS);
           return;
         }
         case "penalty": {
@@ -380,7 +383,7 @@ export function useGameEngine() {
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
-          }, 900);
+          }, POPUP_MS);
           return;
         }
         case "event": {
@@ -418,7 +421,7 @@ export function useGameEngine() {
               }));
               if (won) declareWinner(playerId);
               else resolveLanding(playerId, landed, dice, bonusChain + 1);
-            }, 1200);
+            }, POPUP_MS);
             return;
           }
           const target = cornerPositions(size)[outcome.target];
@@ -432,7 +435,7 @@ export function useGameEngine() {
               ),
             }));
             resolveLanding(playerId, target, dice, bonusChain + 1);
-          }, 1200);
+          }, POPUP_MS);
           return;
         }
         case "club":

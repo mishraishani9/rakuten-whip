@@ -7,7 +7,7 @@ import { roomUrl } from "@/services/roomService";
 export function ShareRoom({ code, gameName }: { code: string; gameName: string }) {
   const [copied, setCopied] = useState(false);
   const url = roomUrl(code);
-  const text = `Join my WHIP session "${gameName}" — room ${code}: ${url}`;
+  const text = `Join my Rakuten FLIP session "${gameName}" — room ${code}: ${url}`;
 
   return (
     <section className="rounded-2xl border border-gold/50 bg-card/85 p-3">
@@ -40,7 +40,7 @@ export function ShareRoom({ code, gameName }: { code: string; gameName: string }
           </a>
         </Button>
         <Button size="sm" variant="secondary" asChild>
-          <a href={`mailto:?subject=${encodeURIComponent(`WHIP session ${code}`)}&body=${encodeURIComponent(text)}`}>
+          <a href={`mailto:?subject=${encodeURIComponent(`Rakuten FLIP session ${code}`)}&body=${encodeURIComponent(text)}`}>
             Email
           </a>
         </Button>

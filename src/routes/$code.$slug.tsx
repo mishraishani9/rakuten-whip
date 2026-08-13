@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { PlayerRoomView } from "@/components/game/PlayerRoomView";
 
-const TITLE = "Your Seat in the WHIP Game Room — IP Quiz Board Game";
+const TITLE = "Your Seat in the Rakuten FLIP Game Room — IP Quiz Board Game";
 const DESCRIPTION =
-  "Take your seat in this WHIP session: roll the dice, answer 30-second IP questions and follow the live board with the rest of the table.";
+  "Take your seat in this Rakuten FLIP session: roll the dice, answer 30-second IP questions and follow the live board with the rest of the table.";
 
 export const Route = createFileRoute("/$code/$slug")({
   head: () => ({

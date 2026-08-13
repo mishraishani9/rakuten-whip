@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 
-const TITLE = "Roles & Presenter Invites — WHIP Admin";
+const TITLE = "Roles & Presenter Invites — Rakuten FLIP Admin";
 const DESCRIPTION =
-  "WHIP admin console: invite or approve presenters, and manage player, presenter and admin roles for workshop accounts.";
+  "Rakuten FLIP admin console: invite or approve presenters, and manage player, presenter and admin roles for workshop accounts.";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({

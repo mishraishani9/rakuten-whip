@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { signInWithGoogle, useAuth } from "@/hooks/useAuth";
 
-const TITLE = "Sign in — WHIP Intellectual Property Quiz";
+const TITLE = "Sign in — Rakuten FLIP Intellectual Property Quiz";
 const DESCRIPTION =
-  "Sign in to WHIP with Google or email to play IP quiz sessions, or request presenter access from an admin.";
+  "Sign in to Rakuten FLIP with Google or email to play IP quiz sessions, or request presenter access from an admin.";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({

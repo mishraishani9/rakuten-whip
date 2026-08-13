@@ -12,9 +12,9 @@ import {
 } from "@/services/questionService";
 import { StaffGate } from "@/components/StaffGate";
 
-const TITLE = "Bulk Question Upload — WHIP";
+const TITLE = "Bulk Question Upload — Rakuten FLIP";
 const DESCRIPTION =
-  "Bulk-upload intellectual-property questions to WHIP from a validated CSV file, and review bank coverage by theme and difficulty.";
+  "Bulk-upload intellectual-property questions to Rakuten FLIP from a validated CSV file, and review bank coverage by theme and difficulty.";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
