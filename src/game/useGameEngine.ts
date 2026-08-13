@@ -582,11 +582,26 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           autoAdvanceAfterRule(playerId);
           return;
         case "start":
-          update((prev) => ({
-            ...prev,
-            phase: "PLAYER_TURN",
-            notice: { title: "Back at START.", tone: "info" },
-          }));
+          {
+            const now = stateRef.current;
+            if (now && !hasRollLeft(now)) {
+              handOver(
+                "Back at START.",
+                `No question on this square, and this turn's rolls are used up — play passes to ${nextPlayerName(now)}.`,
+                "info",
+              );
+              return;
+            }
+            update((prev) => ({
+              ...prev,
+              phase: "PLAYER_TURN",
+              notice: {
+                title: "Back at START.",
+                body: "No question on this square — the same player rolls again.",
+                tone: "info",
+              },
+            }));
+          }
           return;
         case "finish":
           declareWinner(playerId);
