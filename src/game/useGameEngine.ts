@@ -652,11 +652,11 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
         notice:
           skipped.length > 0
             ? {
-                title: "Turns skipped",
-                body: `${skipped.join(" ")} ${nextName} rolls now.`,
+                title: `Turns skipped — ${nextName} rolls now.`,
+                body: skipped.join(" "),
                 tone: "warning" as const,
               }
-            : null,
+            : { title: `${nextName}'s turn — enter the dice value.`, tone: "info" as const },
       };
     });
   }, [update]);
