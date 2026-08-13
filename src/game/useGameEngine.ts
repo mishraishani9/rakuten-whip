@@ -205,7 +205,10 @@ export function useGameEngine() {
   const handOver = useCallback(
     (title: string, body?: string, tone: "info" | "warning" | "danger" | "success" = "warning") => {
       endTurnRef.current?.();
-      update((prev) => ({ ...prev, notice: { title, body, tone } }));
+      update((prev) => ({
+        ...prev,
+        notice: body === undefined ? { title, tone } : { title, body, tone },
+      }));
     },
     [update],
   );
