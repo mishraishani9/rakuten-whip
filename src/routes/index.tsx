@@ -95,16 +95,17 @@ function Home() {
         >
           <SoundControls />
         </div>
-        <div className="relative flex h-72 w-72 items-center justify-center rounded-full border-4 border-gold/70 bg-primary/20 shadow-gold-glow animate-glow-pulse">
+        <div className="relative flex h-56 w-56 items-center justify-center rounded-full border-4 border-gold/70 bg-primary/20 shadow-gold-glow animate-glow-pulse sm:h-72 sm:w-72">
           <div className="absolute inset-4 rounded-full border border-accent/60" />
-          <div className="text-center">
-            <p className="text-gradient-gold font-display text-6xl font-black tracking-[0.1em]">Rakuten FLIP</p>
+          <div className="px-6 text-center">
+            <p className="text-[0.62rem] uppercase tracking-[0.4em] text-muted-foreground">Rakuten</p>
+            <p className="text-gradient-gold font-display text-5xl font-black tracking-[0.1em] sm:text-6xl">FLIP</p>
             <p className="mt-1 text-[0.6rem] uppercase tracking-[0.3em] text-muted-foreground">
               © ® ™ Quiz Show
             </p>
           </div>
         </div>
-        <h1 className="relative mt-8 max-w-xl text-center font-display text-xl font-black uppercase tracking-[0.2em] text-foreground">
+        <h1 className="relative mt-8 max-w-xl px-4 text-center font-display text-base font-black uppercase tracking-[0.16em] text-foreground sm:text-xl sm:tracking-[0.2em]">
           Fun &amp; Learning in Intellectual Property
         </h1>
         <p className="relative mt-2 text-xs uppercase tracking-[0.3em] text-muted-foreground">Tap to continue</p>
@@ -137,7 +138,9 @@ function Home() {
       </div>
 
       <div className="relative mt-6 text-center">
-        <p className="text-gradient-gold font-display text-5xl font-black tracking-[0.12em]">Rakuten FLIP</p>
+        <p className="text-gradient-gold font-display text-4xl font-black tracking-[0.12em] sm:text-5xl">
+          Rakuten FLIP
+        </p>
         <p className="mt-1 text-[0.62rem] uppercase tracking-[0.28em] text-muted-foreground">
           Fun &amp; Learning in Intellectual Property
         </p>
