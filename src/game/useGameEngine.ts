@@ -102,6 +102,11 @@ export function storeState(state: GameState | null) {
   else window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
 }
 
+/** True while the current player still has one of the allowed rolls left. */
+function hasRollLeft(state: GameState): boolean {
+  return (state.rollsThisTurn ?? 0) < GAME_SETTINGS.MAX_ROLLS_PER_TURN;
+}
+
 function nextEligible(
   state: GameState,
   fromId: string,
@@ -128,6 +133,12 @@ function nextEligible(
     return { players, nextId: candidate.id, skipped };
   }
   return { players, nextId: fromId, skipped };
+}
+
+/** Name of the player who will roll after the current one hands over. */
+function nextPlayerName(state: GameState): string {
+  const { players, nextId } = nextEligible(state, state.currentPlayerId);
+  return players.find((p) => p.id === nextId)?.name ?? "the next player";
 }
 
 export function useGameEngine() {
@@ -186,6 +197,21 @@ export function useGameEngine() {
   const update = useCallback((mutate: (prev: GameState) => GameState) => {
     setState((prev) => (prev ? mutate(prev) : prev));
   }, []);
+
+  /**
+   * Hands the turn over and then writes the explanatory prompt, so the message
+   * always survives `endTurn` (which clears the previous notice).
+   */
+  const handOver = useCallback(
+    (title: string, body?: string, tone: "info" | "warning" | "danger" | "success" = "warning") => {
+      endTurnRef.current?.();
+      update((prev) => ({
+        ...prev,
+        notice: body === undefined ? { title, tone } : { title, body, tone },
+      }));
+    },
+    [update],
+  );
 
   const pushHistory = useCallback(() => {
     const current = stateRef.current;
@@ -290,7 +316,7 @@ export function useGameEngine() {
           currentSquareDifficulty: difficulty,
           notice: {
             title: "No unused questions remain for this category.",
-            body: `${theme} · ${difficulty}`,
+            body: `${theme} · ${difficulty}. Nothing to answer here — play passes to the next player.`,
             tone: "warning",
           },
         }));
@@ -375,17 +401,31 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               bonusChain >= GAME_SETTINGS.MAX_BONUS_CHAIN &&
               squareAt(landed, board).type === "bonus"
             ) {
-              update((prev) => ({
-                ...prev,
-                phase: "PLAYER_TURN",
-                notice: { title: "Bonus chain limit reached. Turn continues.", tone: "info" },
-              }));
+              if (hasRollLeft(current)) {
+                update((prev) => ({
+                  ...prev,
+                  phase: "PLAYER_TURN",
+                  notice: {
+                    title: "Bonus chain limit reached.",
+                    body: "No second bonus in a row — same player rolls again.",
+                    tone: "info",
+                  },
+                }));
+              } else {
+                handOver(
+                  "Bonus chain limit reached.",
+                  `No second bonus in a row, and this turn's rolls are used up — play passes to ${nextPlayerName(current)}.`,
+                  "info",
+                );
+              }
               return;
             }
             // A bonus never chains into a penalty — hand over instead.
             if (squareAt(landed, board).type === "penalty") {
-              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-              endTurnRef.current?.();
+              handOver(
+                "Bonus landed on a PENALTY square.",
+                `A bonus never chains into a penalty, so nothing more happens here — play passes to ${nextPlayerName(current)}.`,
+              );
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -416,8 +456,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             // A penalty never chains into another special — hand over instead.
             const next = squareAt(landed, board).type;
             if (next === "penalty" || next === "bonus") {
-              update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-              endTurnRef.current?.();
+              handOver(
+                "Penalty landed on another special square.",
+                `Specials never chain, so nothing more happens here — play passes to ${nextPlayerName(current)}.`,
+              );
               return;
             }
             resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -465,8 +507,10 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
               // A "?" move must not chain straight into a bonus/penalty square.
               const next = squareAt(landed, board).type;
               if (next === "bonus" || next === "penalty") {
-                update((prev) => ({ ...prev, phase: "PLAYER_TURN", notice: null }));
-                endTurnRef.current?.();
+                handOver(
+                  "? move landed on a special square.",
+                  `Specials never chain from a "?" move — play passes to ${nextPlayerName(current)}.`,
+                );
                 return;
               }
               resolveLanding(playerId, landed, dice, bonusChain + 1);
@@ -538,11 +582,26 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
           autoAdvanceAfterRule(playerId);
           return;
         case "start":
-          update((prev) => ({
-            ...prev,
-            phase: "PLAYER_TURN",
-            notice: { title: "Back at START.", tone: "info" },
-          }));
+          {
+            const now = stateRef.current;
+            if (now && !hasRollLeft(now)) {
+              handOver(
+                "Back at START.",
+                `No question on this square, and this turn's rolls are used up — play passes to ${nextPlayerName(now)}.`,
+                "info",
+              );
+              return;
+            }
+            update((prev) => ({
+              ...prev,
+              phase: "PLAYER_TURN",
+              notice: {
+                title: "Back at START.",
+                body: "No question on this square — the same player rolls again.",
+                tone: "info",
+              },
+            }));
+          }
           return;
         case "finish":
           declareWinner(playerId);
@@ -593,8 +652,8 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
         notice:
           skipped.length > 0
             ? {
-                title: "Turns skipped",
-                body: `${skipped.join(" ")} ${nextName} rolls now.`,
+                title: `Turns skipped — ${nextName} rolls now.`,
+                body: skipped.join(" "),
                 tone: "warning" as const,
               }
             : null,
@@ -629,6 +688,16 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
       // A roll is only legal on the player's own turn — never while a rules
       // popup (bar / club / jail / event) or a question is still resolving.
       if (current.phase !== "PLAYER_TURN" && current.phase !== "READY") return;
+      // The roll cap is enforced here too: some squares (START, "no question
+      // left", bonus-chain limit) return to PLAYER_TURN without passing through
+      // the reveal screen, which is the other place the cap is checked.
+      if (!hasRollLeft(current)) {
+        handOver(
+          "That turn's rolls are used up.",
+          `Only ${GAME_SETTINGS.MAX_ROLLS_PER_TURN} rolls are allowed per turn — ${nextPlayerName(current)} rolls now.`,
+        );
+        return;
+      }
       pushHistory();
 
       // Jail escape attempt
@@ -642,10 +711,14 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             p.id === player.id ? { ...p, inJail: !escaped, turns: p.turns + 1 } : p,
           ),
           notice: escaped
-            ? { title: "You escaped Jail!", tone: "success" }
+            ? {
+                title: "You escaped Jail!",
+                body: `Your pawn is free but this turn ends here — ${nextPlayerName(current)} rolls next, and you move on your following turn.`,
+                tone: "success",
+              }
             : {
                 title: "Still in Jail.",
-                body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`,
+                body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn. Play passes to ${nextPlayerName(current)}.`,
                 tone: "danger",
               },
         }));
@@ -738,7 +811,17 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             : p,
         ),
         notice: isCorrect
-          ? { title: "Correct! You get another turn.", tone: "success" }
+          ? hasRollLeft(current)
+            ? {
+                title: "Correct! You get another roll.",
+                body: "Same player continues — enter the next dice value.",
+                tone: "success" as const,
+              }
+            : {
+                title: `Correct! That was your last roll of this turn.`,
+                body: `Only ${GAME_SETTINGS.MAX_ROLLS_PER_TURN} rolls are allowed per turn — play passes to ${nextPlayerName(current)}.`,
+                tone: "success" as const,
+              }
           : {
               title: isTimeout
                 ? "Time up! Your pawn moves back."
