@@ -198,6 +198,18 @@ export function useGameEngine() {
     setState((prev) => (prev ? mutate(prev) : prev));
   }, []);
 
+  /**
+   * Hands the turn over and then writes the explanatory prompt, so the message
+   * always survives `endTurn` (which clears the previous notice).
+   */
+  const handOver = useCallback(
+    (title: string, body?: string, tone: "info" | "warning" | "danger" | "success" = "warning") => {
+      endTurnRef.current?.();
+      update((prev) => ({ ...prev, notice: { title, body, tone } }));
+    },
+    [update],
+  );
+
   const pushHistory = useCallback(() => {
     const current = stateRef.current;
     if (!current) return;
