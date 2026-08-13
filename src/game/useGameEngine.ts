@@ -688,6 +688,16 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
       // A roll is only legal on the player's own turn — never while a rules
       // popup (bar / club / jail / event) or a question is still resolving.
       if (current.phase !== "PLAYER_TURN" && current.phase !== "READY") return;
+      // The roll cap is enforced here too: some squares (START, "no question
+      // left", bonus-chain limit) return to PLAYER_TURN without passing through
+      // the reveal screen, which is the other place the cap is checked.
+      if (!hasRollLeft(current)) {
+        handOver(
+          "That turn's rolls are used up.",
+          `Only ${GAME_SETTINGS.MAX_ROLLS_PER_TURN} rolls are allowed per turn — ${nextPlayerName(current)} rolls now.`,
+        );
+        return;
+      }
       pushHistory();
 
       // Jail escape attempt
@@ -701,10 +711,14 @@ const POPUP_MS = GAME_SETTINGS.RULE_POPUP_SECONDS * 1000;
             p.id === player.id ? { ...p, inJail: !escaped, turns: p.turns + 1 } : p,
           ),
           notice: escaped
-            ? { title: "You escaped Jail!", tone: "success" }
+            ? {
+                title: "You escaped Jail!",
+                body: `Your pawn is free but this turn ends here — ${nextPlayerName(current)} rolls next, and you move on your following turn.`,
+                tone: "success",
+              }
             : {
                 title: "Still in Jail.",
-                body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn.`,
+                body: `Roll ${GAME_SETTINGS.JAIL_RELEASE_ROLLS.join(" or ")} next turn. Play passes to ${nextPlayerName(current)}.`,
                 tone: "danger",
               },
         }));
